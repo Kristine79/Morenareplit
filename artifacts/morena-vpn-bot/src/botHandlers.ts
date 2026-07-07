@@ -1,11 +1,12 @@
 /**
  * Telegram-бот "Morena VPN"
- * Стек: grammY + Prisma (SQLite) + RoyaltyKey API + CryptoBot Pay
+ * Стек: grammY + Prisma (SQLite) + RoyaltyKey API + CryptoBot Pay + Platega.io
  *
  * Структура:
  *  - /start — приветствие + реферальная система
  *  - Главное меню: тест, покупка, профиль, промокод, инструкция
  *  - Покупка: тарифы → QR-инвойс → фоновая проверка → выдача ключа
+ *    Способы оплаты: CryptoBot (USDT), Telegram Stars, Platega (Карта РФ, СБП)
  *  - Профиль: баланс, реферальная ссылка, список ключей
  *  - Промокоды: ввод + транзакция начисления бонуса
  *  - CRON: авто-уведомления об истечении
@@ -17,6 +18,7 @@ import QRCode from "qrcode";
 import { prisma } from "./db.js";
 import { royaltyKey } from "./royaltyKeyApi.js";
 import { cryptoBot, USDT_RUB_RATE } from "./cryptoBotApi.js";
+import { platega, PLATEGA_METHOD } from "./platega.js";
 import { CLASSIC_TARIFFS, OBHOD_TARIFFS, TARIFFS, TRIAL_TARIFF_ID, TRIAL_DURATION_DAYS, TRIAL_API_TARIFF, TRIAL_API_DAYS, REFERRAL_BONUS, EXTRA_TRAFFIC_PACKAGES } from "./tariffs.js";
 import { escapeMarkdown, formatVpnKey, formatDate, subStatus } from "./helpers.js";
 
@@ -247,7 +249,8 @@ export function setupBotHandlers(bot: Bot): void {
     const keyboard = new InlineKeyboard()
       .text("⚡ CryptoBot (USDT)", `pay_crypto:${tariffId}`).row()
       .text("⭐ Telegram Stars", `pay_stars:${tariffId}`).row()
-      .text("💳 Картой", `pay_card:${tariffId}`).row()
+      .text("💳 Картой (РФ)", `pay_card:${tariffId}`).row()
+      .text("📲 СБП", `pay_sbp:${tariffId}`).row()
       .text("◀️ Назад", "buy");
 
     await ctx.reply(
@@ -401,10 +404,114 @@ export function setupBotHandlers(bot: Bot): void {
 
   bot.callbackQuery(/^gift_pay_card:([^:]+):(.+)$/, async (ctx) => {
     await ctx.answerCallbackQuery();
-    await ctx.reply(
-      `💳 *Оплата картой*\n\nОплата картой временно недоступна\\. Скоро добавим 🙌\n\nЕсли хотите оплатить сейчас — выберите CryptoBot или Telegram Stars\\.`,
-      { parse_mode: "MarkdownV2", reply_markup: new InlineKeyboard().text("◀️ Назад", "gift") }
-    );
+    const tariffId   = ctx.match[1];
+    const recipient  = ctx.match[2];
+    const gifterId   = BigInt(ctx.from.id);
+
+    if (!platega.isConfigured()) {
+      await ctx.reply(
+        `💳 *Оплата картой*\n\nОплата картой временно недоступна\\. Попробуйте CryptoBot или Telegram Stars\\.`,
+        { parse_mode: "MarkdownV2", reply_markup: new InlineKeyboard().text("◀️ Назад", "gift") }
+      );
+      return;
+    }
+
+    const tariff = TARIFFS.find((t) => t.id === tariffId);
+    if (!tariff) { await ctx.reply("❌ Тариф не найден."); return; }
+
+    await ctx.reply("⏳ Создаём счёт...");
+
+    try {
+      const payload = `gift_buy:${tariffId}:${recipient}:${gifterId}`;
+      const invoice = await platega.createPayment(
+        tariff.priceRub,
+        `Morena VPN — Подарок (${tariff.label})`,
+        payload,
+        PLATEGA_METHOD.CARD,
+        { userId: gifterId.toString(), userName: ctx.from.username ?? "user" }
+      );
+
+      await prisma.payment.create({
+        data: {
+          id:             invoice.transactionId,
+          telegramUserId: gifterId,
+          tariffId,
+          amount:         tariff.priceRub,
+          status:         "pending",
+        },
+      });
+
+      const keyboard = new InlineKeyboard()
+        .url("💳 Оплатить картой", invoice.url).row()
+        .text("✅ Я оплатил", `check_platega_gift:${invoice.transactionId}:${tariffId}:${recipient}`).row()
+        .text("◀️ Назад", "gift");
+
+      await ctx.reply(
+        `🎁 *Подарок для @${escapeMarkdown(recipient)}*\n📦 *${escapeMarkdown(tariff.label)}*\n\n` +
+        `💰 К оплате: *${escapeMarkdown(tariff.priceRub.toString())} ₽*\n` +
+        `⏱ Счёт действует: ${escapeMarkdown(invoice.expiresIn)}`,
+        { parse_mode: "MarkdownV2", reply_markup: keyboard }
+      );
+    } catch (err) {
+      console.error("[gift_pay_card] Ошибка Platega:", err);
+      await ctx.reply("❌ Не удалось создать счёт. Попробуйте другой способ оплаты.");
+    }
+  });
+
+  bot.callbackQuery(/^gift_pay_sbp:([^:]+):(.+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const tariffId   = ctx.match[1];
+    const recipient  = ctx.match[2];
+    const gifterId   = BigInt(ctx.from.id);
+
+    if (!platega.isConfigured()) {
+      await ctx.reply(
+        `📲 *СБП недоступен*\n\nПопробуйте CryptoBot или Telegram Stars\\.`,
+        { parse_mode: "MarkdownV2", reply_markup: new InlineKeyboard().text("◀️ Назад", "gift") }
+      );
+      return;
+    }
+
+    const tariff = TARIFFS.find((t) => t.id === tariffId);
+    if (!tariff) { await ctx.reply("❌ Тариф не найден."); return; }
+
+    await ctx.reply("⏳ Создаём счёт...");
+
+    try {
+      const payload = `gift_buy:${tariffId}:${recipient}:${gifterId}`;
+      const invoice = await platega.createPayment(
+        tariff.priceRub,
+        `Morena VPN — Подарок (${tariff.label})`,
+        payload,
+        PLATEGA_METHOD.SBP,
+        { userId: gifterId.toString(), userName: ctx.from.username ?? "user" }
+      );
+
+      await prisma.payment.create({
+        data: {
+          id:             invoice.transactionId,
+          telegramUserId: gifterId,
+          tariffId,
+          amount:         tariff.priceRub,
+          status:         "pending",
+        },
+      });
+
+      const keyboard = new InlineKeyboard()
+        .url("📲 Оплатить через СБП", invoice.url).row()
+        .text("✅ Я оплатил", `check_platega_gift:${invoice.transactionId}:${tariffId}:${recipient}`).row()
+        .text("◀️ Назад", "gift");
+
+      await ctx.reply(
+        `🎁 *Подарок для @${escapeMarkdown(recipient)}*\n📦 *${escapeMarkdown(tariff.label)}*\n\n` +
+        `💰 К оплате: *${escapeMarkdown(tariff.priceRub.toString())} ₽*\n` +
+        `⏱ Счёт действует: ${escapeMarkdown(invoice.expiresIn)}`,
+        { parse_mode: "MarkdownV2", reply_markup: keyboard }
+      );
+    } catch (err) {
+      console.error("[gift_pay_sbp] Ошибка Platega:", err);
+      await ctx.reply("❌ Не удалось создать счёт. Попробуйте другой способ оплаты.");
+    }
   });
 
   bot.callbackQuery(/^pay_crypto:(.+)$/, async (ctx) => {
@@ -594,11 +701,309 @@ export function setupBotHandlers(bot: Bot): void {
 
   bot.callbackQuery(/^pay_card:(.+)$/, async (ctx) => {
     await ctx.answerCallbackQuery();
-    await ctx.reply(
-      `💳 *Оплата картой*\n\nОплата картой временно недоступна\\. Скоро добавим 🙌\n\nЕсли хотите оплатить сейчас — выберите CryptoBot или Telegram Stars\\.`,
-      { parse_mode: "MarkdownV2", reply_markup: new InlineKeyboard() }
-    );
+    const tariffId = ctx.match[1];
+    const userId   = BigInt(ctx.from.id);
+
+    if (!platega.isConfigured()) {
+      await ctx.reply(
+        `💳 *Оплата картой*\n\nОплата картой временно недоступна\\. Попробуйте CryptoBot или Telegram Stars\\.`,
+        { parse_mode: "MarkdownV2", reply_markup: new InlineKeyboard().text("◀️ Назад", `buy_tariff:${tariffId}`) }
+      );
+      return;
+    }
+
+    const tariff = TARIFFS.find((t) => t.id === tariffId);
+    if (!tariff) { await ctx.reply("❌ Тариф не найден."); return; }
+
+    const user     = await prisma.user.findUnique({ where: { id: userId } });
+    const bonus    = user?.balance ?? 0;
+    const discount = Math.min(bonus, tariff.priceRub);
+    const final    = tariff.priceRub - discount;
+
+    await ctx.reply("⏳ Создаём счёт на оплату...");
+
+    try {
+      if (final === 0) {
+        await prisma.payment.create({
+          data: { id: `bonus_${userId}_${Date.now()}`, telegramUserId: userId, tariffId, amount: 0, status: "paid" },
+        });
+        await grantVpnAccess(ctx, userId, tariffId, discount, 0);
+        return;
+      }
+
+      const payload = `buy:${tariffId}:${userId}`;
+      const invoice = await platega.createPayment(
+        final,
+        `Morena VPN — ${tariff.label}`,
+        payload,
+        PLATEGA_METHOD.CARD,
+        { userId: userId.toString(), userName: ctx.from.username ?? "user" }
+      );
+
+      await prisma.payment.create({
+        data: { id: invoice.transactionId, telegramUserId: userId, tariffId, amount: final, status: "pending" },
+      });
+
+      const priceText = discount > 0
+        ? `${tariff.priceRub} ₽ − ${discount} ₽ бонус = *${escapeMarkdown(final.toString())} ₽*`
+        : `*${escapeMarkdown(final.toString())} ₽*`;
+
+      const keyboard = new InlineKeyboard()
+        .url("💳 Оплатить картой", invoice.url).row()
+        .text("✅ Я оплатил", `check_platega_buy:${invoice.transactionId}:${tariffId}`).row()
+        .text("◀️ Назад", `buy_tariff:${tariffId}`);
+
+      await ctx.reply(
+        `💳 *Оплата картой — Morena VPN*\n\n📦 *${escapeMarkdown(tariff.label)}*\n` +
+        `💰 К оплате: ${priceText}\n⏱ Счёт действует: ${escapeMarkdown(invoice.expiresIn)}\n\n` +
+        `Нажмите кнопку ниже для оплаты:`,
+        { parse_mode: "MarkdownV2", reply_markup: keyboard }
+      );
+
+      startPlategalBuyPolling(invoice.transactionId, userId, tariffId, discount, ctx.chat!.id);
+    } catch (err) {
+      console.error("[pay_card] Ошибка Platega:", err);
+      await ctx.reply("❌ Не удалось создать счёт. Попробуйте позже или выберите другой способ оплаты.");
+    }
   });
+
+  bot.callbackQuery(/^pay_sbp:(.+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const tariffId = ctx.match[1];
+    const userId   = BigInt(ctx.from.id);
+
+    if (!platega.isConfigured()) {
+      await ctx.reply(
+        `📲 *Оплата через СБП*\n\nСБП временно недоступен\\. Попробуйте CryptoBot или Telegram Stars\\.`,
+        { parse_mode: "MarkdownV2", reply_markup: new InlineKeyboard().text("◀️ Назад", `buy_tariff:${tariffId}`) }
+      );
+      return;
+    }
+
+    const tariff = TARIFFS.find((t) => t.id === tariffId);
+    if (!tariff) { await ctx.reply("❌ Тариф не найден."); return; }
+
+    const user     = await prisma.user.findUnique({ where: { id: userId } });
+    const bonus    = user?.balance ?? 0;
+    const discount = Math.min(bonus, tariff.priceRub);
+    const final    = tariff.priceRub - discount;
+
+    await ctx.reply("⏳ Создаём счёт на оплату...");
+
+    try {
+      if (final === 0) {
+        await prisma.payment.create({
+          data: { id: `bonus_${userId}_${Date.now()}`, telegramUserId: userId, tariffId, amount: 0, status: "paid" },
+        });
+        await grantVpnAccess(ctx, userId, tariffId, discount, 0);
+        return;
+      }
+
+      const payload = `buy:${tariffId}:${userId}`;
+      const invoice = await platega.createPayment(
+        final,
+        `Morena VPN — ${tariff.label}`,
+        payload,
+        PLATEGA_METHOD.SBP,
+        { userId: userId.toString(), userName: ctx.from.username ?? "user" }
+      );
+
+      await prisma.payment.create({
+        data: { id: invoice.transactionId, telegramUserId: userId, tariffId, amount: final, status: "pending" },
+      });
+
+      const priceText = discount > 0
+        ? `${tariff.priceRub} ₽ − ${discount} ₽ бонус = *${escapeMarkdown(final.toString())} ₽*`
+        : `*${escapeMarkdown(final.toString())} ₽*`;
+
+      const keyboard = new InlineKeyboard()
+        .url("📲 Оплатить через СБП", invoice.url).row()
+        .text("✅ Я оплатил", `check_platega_buy:${invoice.transactionId}:${tariffId}`).row()
+        .text("◀️ Назад", `buy_tariff:${tariffId}`);
+
+      await ctx.reply(
+        `📲 *Оплата через СБП — Morena VPN*\n\n📦 *${escapeMarkdown(tariff.label)}*\n` +
+        `💰 К оплате: ${priceText}\n⏱ Счёт действует: ${escapeMarkdown(invoice.expiresIn)}\n\n` +
+        `Нажмите кнопку ниже для оплаты:`,
+        { parse_mode: "MarkdownV2", reply_markup: keyboard }
+      );
+
+      startPlategalBuyPolling(invoice.transactionId, userId, tariffId, discount, ctx.chat!.id);
+    } catch (err) {
+      console.error("[pay_sbp] Ошибка Platega:", err);
+      await ctx.reply("❌ Не удалось создать счёт. Попробуйте позже или выберите другой способ оплаты.");
+    }
+  });
+
+  // ─── Platega payment helpers ────────────────────────────────────────────────
+
+  async function markPlategalInvoicePaid(
+    transactionId: string,
+    processor: () => Promise<void>
+  ): Promise<boolean> {
+    try {
+      const wasUpdated = await prisma.$transaction(async (tx) => {
+        const payment = await tx.payment.findUnique({ where: { id: transactionId } });
+        if (!payment || payment.status === "paid") return false;
+        await tx.payment.update({ where: { id: transactionId }, data: { status: "paid" } });
+        return true;
+      });
+      if (wasUpdated) {
+        await processor();
+      } else {
+        console.log(`[markPlategalInvoicePaid] Транзакция ${transactionId} уже обработана`);
+      }
+      return wasUpdated;
+    } catch (err) {
+      console.error(`[markPlategalInvoicePaid] Ошибка для ${transactionId}:`, err);
+      return false;
+    }
+  }
+
+  async function markPlategalInvoiceFailed(transactionId: string): Promise<boolean> {
+    try {
+      const wasUpdated = await prisma.$transaction(async (tx) => {
+        const payment = await tx.payment.findUnique({ where: { id: transactionId } });
+        if (!payment || payment.status !== "pending") return false;
+        await tx.payment.update({ where: { id: transactionId }, data: { status: "failed" } });
+        return true;
+      });
+      return wasUpdated;
+    } catch (err) {
+      console.error(`[markPlategalInvoiceFailed] Ошибка для ${transactionId}:`, err);
+      return false;
+    }
+  }
+
+  function startPlategalBuyPolling(
+    transactionId: string,
+    userId: bigint,
+    tariffId: string,
+    bonusUsed: number,
+    chatId: number | string
+  ): void {
+    const MAX_ATTEMPTS = Math.floor(POLL_MAX_MS / POLL_INTERVAL_MS);
+    let attempts = 0;
+
+    const interval = setInterval(async () => {
+      attempts++;
+      if (attempts > MAX_ATTEMPTS) {
+        clearInterval(interval);
+        console.log(`[platega_poll] Транзакция ${transactionId} истекла по таймауту`);
+        return;
+      }
+      try {
+        const result = await platega.checkStatus(transactionId);
+        if (result.status === "CONFIRMED") {
+          clearInterval(interval);
+          await markPlategalInvoicePaid(transactionId, async () => {
+            await grantVpnAccessById(chatId, userId, tariffId, bonusUsed);
+          });
+        } else if (result.status === "CANCELED" || result.status === "CHARGEBACKED") {
+          clearInterval(interval);
+          await markPlategalInvoiceFailed(transactionId);
+          await bot.api.sendMessage(chatId, `❌ Платёж отменён\\. Попробуйте снова\\.`, { parse_mode: "MarkdownV2" });
+        }
+      } catch (err) {
+        console.error(`[platega_poll] Ошибка проверки ${transactionId}:`, err);
+      }
+    }, POLL_INTERVAL_MS);
+  }
+
+  function startPlategalRenewalPolling(
+    transactionId: string,
+    userId: bigint,
+    subId: string,
+    tariffId: string,
+    bonusUsed: number,
+    chatId: number | string
+  ): void {
+    const MAX_ATTEMPTS = Math.floor(POLL_MAX_MS / POLL_INTERVAL_MS);
+    let attempts = 0;
+
+    const interval = setInterval(async () => {
+      attempts++;
+      if (attempts > MAX_ATTEMPTS) { clearInterval(interval); return; }
+      try {
+        const result = await platega.checkStatus(transactionId);
+        if (result.status === "CONFIRMED") {
+          clearInterval(interval);
+          await markPlategalInvoicePaid(transactionId, async () => {
+            await processRenewal(chatId, userId, subId, tariffId, bonusUsed);
+          });
+        } else if (result.status === "CANCELED" || result.status === "CHARGEBACKED") {
+          clearInterval(interval);
+          await markPlategalInvoiceFailed(transactionId);
+        }
+      } catch (err) {
+        console.error(`[platega_renew_poll] Ошибка проверки ${transactionId}:`, err);
+      }
+    }, POLL_INTERVAL_MS);
+  }
+
+  // ─── Platega check callbacks ─────────────────────────────────────────────
+
+  bot.callbackQuery(/^check_platega_buy:([^:]+):(.+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery("🔍 Проверяем платёж...");
+    const transactionId = ctx.match[1];
+    const tariffId      = ctx.match[2];
+    const userId        = BigInt(ctx.from.id);
+
+    try {
+      const payment = await prisma.payment.findUnique({ where: { id: transactionId } });
+      if (!payment) { await ctx.reply("❌ Платёж не найден."); return; }
+      if (payment.telegramUserId !== userId) { await ctx.reply("❌ Этот счёт не принадлежит вам."); return; }
+      if (payment.status === "paid") { await ctx.reply("✅ Платёж уже обработан."); return; }
+
+      const result = await platega.checkStatus(transactionId);
+      if (result.status === "CONFIRMED") {
+        await markPlategalInvoicePaid(transactionId, async () => {
+          await grantVpnAccess(ctx, userId, tariffId, 0, payment.amount);
+        });
+      } else if (result.status === "CANCELED" || result.status === "CHARGEBACKED") {
+        await markPlategalInvoiceFailed(transactionId);
+        await ctx.reply("❌ Платёж отменён. Попробуйте снова.");
+      } else {
+        await ctx.reply("⏳ Платёж ещё не поступил. Попробуйте чуть позже.");
+      }
+    } catch (err) {
+      console.error("[check_platega_buy] Ошибка:", err);
+      await ctx.reply("❌ Ошибка при проверке платежа. Попробуйте позже.");
+    }
+  });
+
+  bot.callbackQuery(/^check_platega_gift:([^:]+):([^:]+):(.+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery("🔍 Проверяем платёж...");
+    const transactionId = ctx.match[1];
+    const tariffId      = ctx.match[2];
+    const recipient     = ctx.match[3];
+    const userId        = BigInt(ctx.from.id);
+
+    try {
+      const payment = await prisma.payment.findUnique({ where: { id: transactionId } });
+      if (!payment) { await ctx.reply("❌ Платёж не найден."); return; }
+      if (payment.telegramUserId !== userId) { await ctx.reply("❌ Этот счёт не принадлежит вам."); return; }
+      if (payment.status === "paid") { await ctx.reply("✅ Платёж уже обработан."); return; }
+
+      const result = await platega.checkStatus(transactionId);
+      if (result.status === "CONFIRMED") {
+        await markPlategalInvoicePaid(transactionId, async () => {
+          // The webhook will handle VPN provisioning; here we just confirm to the user
+          await ctx.reply(`✅ Платёж подтверждён\\! Подарок для *@${escapeMarkdown(recipient)}* будет активирован в ближайшие секунды\\.`, { parse_mode: "MarkdownV2" });
+        });
+      } else if (result.status === "CANCELED" || result.status === "CHARGEBACKED") {
+        await markPlategalInvoiceFailed(transactionId);
+        await ctx.reply("❌ Платёж отменён. Попробуйте снова.");
+      } else {
+        await ctx.reply("⏳ Платёж ещё не поступил. Попробуйте чуть позже.");
+      }
+    } catch (err) {
+      console.error("[check_platega_gift] Ошибка:", err);
+      await ctx.reply("❌ Ошибка при проверке платежа. Попробуйте позже.");
+    }
+  });
+
+  // ────────────────────────────────────────────────────────────────────────────
 
   async function markInvoicePaid(
     invoiceId: number,
@@ -961,7 +1366,8 @@ export function setupBotHandlers(bot: Bot): void {
     const keyboard = new InlineKeyboard()
       .text("⚡ CryptoBot (USDT)", `renew_crypto:${subId}:${tariffId}`).row()
       .text("⭐ Telegram Stars", `renew_stars:${subId}:${tariffId}`).row()
-      .text("💳 Картой", `renew_card:${subId}:${tariffId}`).row()
+      .text("💳 Картой (РФ)", `renew_card:${subId}:${tariffId}`).row()
+      .text("📲 СБП", `renew_sbp:${subId}:${tariffId}`).row()
       .text("◀️ Назад", `renew_sub:${subId}`);
 
     await ctx.reply(
@@ -1067,15 +1473,169 @@ export function setupBotHandlers(bot: Bot): void {
 
   bot.callbackQuery(/^renew_card:([^:]+):(.+)$/, async (ctx) => {
     await ctx.answerCallbackQuery();
-    const subId = ctx.match[1];
+    const subId    = ctx.match[1];
     const tariffId = ctx.match[2];
-    await ctx.reply(
-      `💳 *Оплата картой*\n\nОплата картой временно недоступна\\. Скоро добавим 🙌\n\nВыберите CryptoBot или Telegram Stars для оплаты сейчас\\.`,
-      { parse_mode: "MarkdownV2", reply_markup: new InlineKeyboard() }
-    );
+    const userId   = BigInt(ctx.from.id);
+
+    if (!platega.isConfigured()) {
+      await ctx.reply(
+        `💳 *Оплата картой*\n\nОплата картой временно недоступна\\. Попробуйте CryptoBot или Telegram Stars\\.`,
+        { parse_mode: "MarkdownV2", reply_markup: new InlineKeyboard().text("◀️ Назад", `renew_pay:${subId}:${tariffId}`) }
+      );
+      return;
+    }
+
+    const tariff = TARIFFS.find((t) => t.id === tariffId);
+    if (!tariff) { await ctx.reply("❌ Тариф не найден."); return; }
+
+    const user     = await prisma.user.findUnique({ where: { id: userId } });
+    const bonus    = user?.balance ?? 0;
+    const discount = Math.min(bonus, tariff.priceRub);
+    const final    = tariff.priceRub - discount;
+
+    await ctx.reply("⏳ Создаём счёт на оплату...");
+
+    try {
+      if (final === 0) {
+        await prisma.payment.create({
+          data: { id: `bonus_renew_${userId}_${Date.now()}`, telegramUserId: userId, tariffId, amount: 0, status: "paid" },
+        });
+        await processRenewal(ctx, userId, subId, tariffId, discount);
+        return;
+      }
+
+      const payload = `renew:${subId}:${tariffId}:${userId}`;
+      const invoice = await platega.createPayment(
+        final,
+        `Morena VPN — Продление (${tariff.label})`,
+        payload,
+        PLATEGA_METHOD.CARD,
+        { userId: userId.toString(), userName: ctx.from.username ?? "user" }
+      );
+
+      await prisma.payment.create({
+        data: { id: invoice.transactionId, telegramUserId: userId, tariffId, amount: final, status: "pending" },
+      });
+
+      const priceText = discount > 0
+        ? `${tariff.priceRub} ₽ − ${discount} ₽ бонус = *${escapeMarkdown(final.toString())} ₽*`
+        : `*${escapeMarkdown(final.toString())} ₽*`;
+
+      const keyboard = new InlineKeyboard()
+        .url("💳 Оплатить картой", invoice.url).row()
+        .text("✅ Я оплатил", `check_platega_renew:${invoice.transactionId}:${subId}:${tariffId}`).row()
+        .text("◀️ Назад", `renew_pay:${subId}:${tariffId}`);
+
+      await ctx.reply(
+        `💳 *Продление картой — Morena VPN*\n\n📦 *${escapeMarkdown(tariff.label)}*\n` +
+        `💰 К оплате: ${priceText}\n⏱ Счёт действует: ${escapeMarkdown(invoice.expiresIn)}`,
+        { parse_mode: "MarkdownV2", reply_markup: keyboard }
+      );
+
+      startPlategalRenewalPolling(invoice.transactionId, userId, subId, tariffId, discount, ctx.chat!.id);
+    } catch (err) {
+      console.error("[renew_card] Ошибка Platega:", err);
+      await ctx.reply("❌ Не удалось создать счёт. Попробуйте позже или выберите другой способ оплаты.");
+    }
   });
 
+  bot.callbackQuery(/^renew_sbp:([^:]+):(.+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const subId    = ctx.match[1];
+    const tariffId = ctx.match[2];
+    const userId   = BigInt(ctx.from.id);
 
+    if (!platega.isConfigured()) {
+      await ctx.reply(
+        `📲 *Оплата через СБП*\n\nСБП временно недоступен\\. Попробуйте CryptoBot или Telegram Stars\\.`,
+        { parse_mode: "MarkdownV2", reply_markup: new InlineKeyboard().text("◀️ Назад", `renew_pay:${subId}:${tariffId}`) }
+      );
+      return;
+    }
+
+    const tariff = TARIFFS.find((t) => t.id === tariffId);
+    if (!tariff) { await ctx.reply("❌ Тариф не найден."); return; }
+
+    const user     = await prisma.user.findUnique({ where: { id: userId } });
+    const bonus    = user?.balance ?? 0;
+    const discount = Math.min(bonus, tariff.priceRub);
+    const final    = tariff.priceRub - discount;
+
+    await ctx.reply("⏳ Создаём счёт на оплату...");
+
+    try {
+      if (final === 0) {
+        await prisma.payment.create({
+          data: { id: `bonus_renew_${userId}_${Date.now()}`, telegramUserId: userId, tariffId, amount: 0, status: "paid" },
+        });
+        await processRenewal(ctx, userId, subId, tariffId, discount);
+        return;
+      }
+
+      const payload = `renew:${subId}:${tariffId}:${userId}`;
+      const invoice = await platega.createPayment(
+        final,
+        `Morena VPN — Продление (${tariff.label})`,
+        payload,
+        PLATEGA_METHOD.SBP,
+        { userId: userId.toString(), userName: ctx.from.username ?? "user" }
+      );
+
+      await prisma.payment.create({
+        data: { id: invoice.transactionId, telegramUserId: userId, tariffId, amount: final, status: "pending" },
+      });
+
+      const priceText = discount > 0
+        ? `${tariff.priceRub} ₽ − ${discount} ₽ бонус = *${escapeMarkdown(final.toString())} ₽*`
+        : `*${escapeMarkdown(final.toString())} ₽*`;
+
+      const keyboard = new InlineKeyboard()
+        .url("📲 Оплатить через СБП", invoice.url).row()
+        .text("✅ Я оплатил", `check_platega_renew:${invoice.transactionId}:${subId}:${tariffId}`).row()
+        .text("◀️ Назад", `renew_pay:${subId}:${tariffId}`);
+
+      await ctx.reply(
+        `📲 *Продление через СБП — Morena VPN*\n\n📦 *${escapeMarkdown(tariff.label)}*\n` +
+        `💰 К оплате: ${priceText}\n⏱ Счёт действует: ${escapeMarkdown(invoice.expiresIn)}`,
+        { parse_mode: "MarkdownV2", reply_markup: keyboard }
+      );
+
+      startPlategalRenewalPolling(invoice.transactionId, userId, subId, tariffId, discount, ctx.chat!.id);
+    } catch (err) {
+      console.error("[renew_sbp] Ошибка Platega:", err);
+      await ctx.reply("❌ Не удалось создать счёт. Попробуйте позже или выберите другой способ оплаты.");
+    }
+  });
+
+  bot.callbackQuery(/^check_platega_renew:([^:]+):([^:]+):(.+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery("🔍 Проверяем платёж...");
+    const transactionId = ctx.match[1];
+    const subId         = ctx.match[2];
+    const tariffId      = ctx.match[3];
+    const userId        = BigInt(ctx.from.id);
+
+    try {
+      const payment = await prisma.payment.findUnique({ where: { id: transactionId } });
+      if (!payment) { await ctx.reply("❌ Платёж не найден."); return; }
+      if (payment.telegramUserId !== userId) { await ctx.reply("❌ Этот счёт не принадлежит вам."); return; }
+      if (payment.status === "paid") { await ctx.reply("✅ Платёж уже обработан."); return; }
+
+      const result = await platega.checkStatus(transactionId);
+      if (result.status === "CONFIRMED") {
+        await markPlategalInvoicePaid(transactionId, async () => {
+          await processRenewal(ctx, userId, subId, tariffId, 0);
+        });
+      } else if (result.status === "CANCELED" || result.status === "CHARGEBACKED") {
+        await markPlategalInvoiceFailed(transactionId);
+        await ctx.reply("❌ Платёж отменён. Попробуйте снова.");
+      } else {
+        await ctx.reply("⏳ Платёж ещё не поступил. Попробуйте чуть позже.");
+      }
+    } catch (err) {
+      console.error("[check_platega_renew] Ошибка:", err);
+      await ctx.reply("❌ Ошибка при проверке. Попробуйте позже.");
+    }
+  });
 
   function startRenewalPolling(
     invoiceId: number,
@@ -1480,7 +2040,8 @@ export function setupBotHandlers(bot: Bot): void {
       const keyboard = new InlineKeyboard()
         .text("⚡ CryptoBot (USDT)", `gift_pay_crypto:${gState.tariffId}:${recipient}`).row()
         .text("⭐ Telegram Stars", `gift_pay_stars:${gState.tariffId}:${recipient}`).row()
-        .text("💳 Картой", `gift_pay_card:${gState.tariffId}:${recipient}`).row()
+        .text("💳 Картой (РФ)", `gift_pay_card:${gState.tariffId}:${recipient}`).row()
+        .text("📲 СБП", `gift_pay_sbp:${gState.tariffId}:${recipient}`).row()
         .text("◀️ Назад", "gift");
 
       await ctx.reply(
