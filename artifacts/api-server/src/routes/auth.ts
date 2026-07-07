@@ -128,7 +128,13 @@ router.post("/auth/password-login", (req: Request, res: Response): void => {
   res.json(TelegramLoginResponse.parse({ id: 1, firstName: "Admin" }));
 });
 
+// Development-only login — strictly gated to NODE_ENV=development
 router.post("/auth/dev-login", (req: Request, res: Response): void => {
+  if (process.env.NODE_ENV !== "development") {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
   const { id } = req.body as { id?: number };
   if (!id) {
     res.status(400).json({ error: "ID не указан" });
@@ -136,12 +142,14 @@ router.post("/auth/dev-login", (req: Request, res: Response): void => {
   }
 
   const adminIdStr = process.env.ADMIN_TELEGRAM_ID;
-  if (adminIdStr) {
-    const adminId = Number(adminIdStr);
-    if (id !== adminId) {
-      res.status(403).json({ error: "Доступ запрещён" });
-      return;
-    }
+  if (!adminIdStr) {
+    res.status(500).json({ error: "ADMIN_TELEGRAM_ID не задан" });
+    return;
+  }
+  const adminId = Number(adminIdStr);
+  if (id !== adminId) {
+    res.status(403).json({ error: "Доступ запрещён" });
+    return;
   }
 
   req.session.userId = id;

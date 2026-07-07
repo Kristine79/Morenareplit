@@ -16,8 +16,10 @@ const botPromise: Promise<Bot | null> = BOT_TOKEN
 
 function verifySecretToken(req: Request): boolean {
   if (!WEBHOOK_SECRET) {
-    logger.warn("WEBHOOK_SECRET не задан — подпись Telegram webhook не проверяется");
-    return true;
+    // If webhook mode is in use without a secret, reject all requests for safety.
+    // Set WEBHOOK_SECRET to enable webhook mode with proper verification.
+    logger.error("WEBHOOK_SECRET не задан — все webhook запросы отклоняются");
+    return false;
   }
   const header = req.headers["x-telegram-bot-api-secret-token"];
   return header === WEBHOOK_SECRET;

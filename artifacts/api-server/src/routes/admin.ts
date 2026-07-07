@@ -280,7 +280,7 @@ router.get("/admin/subscriptions", async (req: Request, res: Response): Promise<
         vpnKey: s.vpnKey,
         tariffId: s.tariffId,
         expiresAt: String(s.expiresAt),
-        isActive: Number(s.expiresAt) > Date.now(),
+        isActive: new Date(s.expiresAt).getTime() > Date.now(),
       })),
       total,
       page,

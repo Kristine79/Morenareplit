@@ -712,6 +712,12 @@ export function setupBotHandlers(bot: Bot): void {
           return;
         }
 
+        // Verify ownership — only the payer can claim this invoice
+        if (payment.telegramUserId !== userId) {
+          await ctx.reply("❌ Этот счёт не принадлежит вам.");
+          return;
+        }
+
         await markInvoicePaid(invoiceId, async () => {
           await grantVpnAccess(ctx, userId, payment.tariffId, 0, payment.amount);
         });

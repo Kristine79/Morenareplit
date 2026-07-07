@@ -1,0 +1,1 @@
+- [Morena VPN project structure](morena-vpn-structure.md) — SQLite/Prisma bot + Express API + React admin panel; key build quirks and security fixes applied.
