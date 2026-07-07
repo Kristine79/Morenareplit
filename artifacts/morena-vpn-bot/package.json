@@ -1,0 +1,29 @@
+{
+  "name": "@workspace/morena-vpn-bot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/bot.ts",
+    "start": "tsx src/bot.ts",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "grammy": "^1.36.1",
+    "axios": "^1.10.0",
+    "qrcode": "^1.5.4",
+    "@prisma/client": "^6.9.0",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/qrcode": "^1.5.5",
+    "@types/node-cron": "^3.0.11",
+    "prisma": "^6.9.0",
+    "tsx": "catalog:",
+    "typescript": "~5.9.3"
+  }
+}

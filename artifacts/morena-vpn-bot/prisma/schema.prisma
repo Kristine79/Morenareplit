@@ -1,0 +1,69 @@
+// Prisma schema для бота Morena VPN
+// База данных: SQLite (локальная, легковесная)
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./morena.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Пользователи бота
+model User {
+  id           BigInt  @id
+  username     String?
+  balance      Int     @default(0)   // Бонусный баланс в рублях
+  referredById BigInt?               // ID пригласившего пользователя
+  hasUsedTrial   Boolean  @default(false) // Использован ли пробный период
+  lastActivityAt DateTime?               // Последняя активность (для статистики)
+
+  subscriptions  Subscription[]
+  payments       Payment[]
+  usedPromocodes UsedPromocode[]
+}
+
+// VPN подписки пользователей
+model Subscription {
+  id             String   @id         // ID из API RoyaltyKey
+  telegramUserId BigInt
+  vpnKey         String               // Ключ доступа VPN
+  tariffId       String               // ID тарифа
+  expiresAt      DateTime             // Дата истечения
+
+  user User @relation(fields: [telegramUserId], references: [id])
+}
+
+// Промокоды
+model Promocode {
+  id          String @id
+  bonusAmount Int                    // Сумма бонуса в рублях
+  maxUses     Int                    // Максимальное количество использований
+  usesCount   Int    @default(0)     // Текущее количество использований
+
+  usedBy UsedPromocode[]
+}
+
+// Лог использованных промокодов (защита от повторного использования)
+model UsedPromocode {
+  id          Int    @id @default(autoincrement())
+  userId      BigInt
+  promocodeId String
+
+  user      User      @relation(fields: [userId], references: [id])
+  promocode Promocode @relation(fields: [promocodeId], references: [id])
+
+  @@unique([userId, promocodeId])
+}
+
+// Платежи
+model Payment {
+  id             String @id    // ID инвойса CryptoBot
+  telegramUserId BigInt
+  tariffId       String
+  amount         Int           // Сумма в рублях
+  status         String        // pending | paid | failed
+
+  user User @relation(fields: [telegramUserId], references: [id])
+}

@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: admin
+    description: Admin panel operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,289 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all users
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Paginated list of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserList"
+
+  /admin/payments:
+    get:
+      operationId: listAdminPayments
+      tags: [admin]
+      summary: List all payments
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, paid, failed] }
+      responses:
+        "200":
+          description: Paginated list of payments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPaymentList"
+
+  /admin/subscriptions:
+    get:
+      operationId: listAdminSubscriptions
+      tags: [admin]
+      summary: List all subscriptions
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: active
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Paginated list of subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSubscriptionList"
+
+  /admin/promocodes:
+    get:
+      operationId: listAdminPromocodes
+      tags: [admin]
+      summary: List all promocodes
+      responses:
+        "200":
+          description: List of promocodes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminPromocode"
+    post:
+      operationId: createAdminPromocode
+      tags: [admin]
+      summary: Create a new promocode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromocodeInput"
+      responses:
+        "201":
+          description: Created promocode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPromocode"
+
+  /auth/config:
+    get:
+      operationId: getAuthConfig
+      tags: [auth]
+      summary: Get public auth config (bot username)
+      responses:
+        "200":
+          description: Auth config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthConfig"
+
+  /auth/login:
+    post:
+      operationId: telegramLogin
+      tags: [auth]
+      summary: Login via Telegram auth data (Login Widget)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramAuthData"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Unauthorized
+
+  /auth/me:
+    get:
+      operationId: getAuthMe
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Not authenticated
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok:
+                    type: boolean
+
+  /admin/reseller/profile:
+    get:
+      operationId: getResellerProfile
+      tags: [admin]
+      summary: Get RoyaltyKey reseller balance and discount
+      responses:
+        "200":
+          description: Reseller profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResellerProfile"
+
+  /admin/reseller/clients:
+    post:
+      operationId: createResellerClient
+      tags: [admin]
+      summary: Create a new VPN client via RoyaltyKey API
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateResellerClientBody"
+      responses:
+        "201":
+          description: Created VPN client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResellerClient"
+
+  /admin/subscriptions/{id}/renew:
+    post:
+      operationId: renewSubscription
+      tags: [admin]
+      summary: Renew a subscription via RoyaltyKey API
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RenewSubscriptionBody"
+      responses:
+        "200":
+          description: Renewed subscription info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResellerClient"
+
+  /admin/subscriptions/{id}:
+    delete:
+      operationId: deleteSubscription
+      tags: [admin]
+      summary: Deactivate and delete a subscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok:
+                    type: boolean
+
+  /admin/users/{userId}/balance:
+    patch:
+      operationId: adjustUserBalance
+      tags: [admin]
+      summary: Adjust user balance
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BalanceAdjust"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +321,252 @@ components:
       required:
         - status
 
+    AdminStats:
+      type: object
+      required:
+        - totalUsers
+        - totalRevenue
+        - activeSubscriptions
+        - expiredSubscriptions
+        - trialUsers
+        - pendingPayments
+        - paidPayments
+        - revenueToday
+        - newUsersToday
+        - recentPayments
+      properties:
+        totalUsers:
+          type: integer
+        totalRevenue:
+          type: integer
+        activeSubscriptions:
+          type: integer
+        expiredSubscriptions:
+          type: integer
+        trialUsers:
+          type: integer
+        pendingPayments:
+          type: integer
+        paidPayments:
+          type: integer
+        revenueToday:
+          type: integer
+        newUsersToday:
+          type: integer
+        recentPayments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminPayment"
+
+    AdminUser:
+      type: object
+      required:
+        - id
+        - balance
+        - hasUsedTrial
+        - subscriptionCount
+      properties:
+        id:
+          type: string
+        username:
+          type: ["string", "null"]
+        balance:
+          type: integer
+        hasUsedTrial:
+          type: boolean
+        referredById:
+          type: ["string", "null"]
+        subscriptionCount:
+          type: integer
+
+    AdminUserList:
+      type: object
+      required: [items, total, page, limit]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    AdminPayment:
+      type: object
+      required: [id, telegramUserId, tariffId, amount, status]
+      properties:
+        id:
+          type: string
+        telegramUserId:
+          type: string
+        username:
+          type: ["string", "null"]
+        tariffId:
+          type: string
+        amount:
+          type: integer
+        status:
+          type: string
+
+    AdminPaymentList:
+      type: object
+      required: [items, total, page, limit]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminPayment"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    AdminSubscription:
+      type: object
+      required: [id, telegramUserId, tariffId, expiresAt, isActive]
+      properties:
+        id:
+          type: string
+        telegramUserId:
+          type: string
+        username:
+          type: ["string", "null"]
+        vpnKey:
+          type: string
+        tariffId:
+          type: string
+        expiresAt:
+          type: string
+        isActive:
+          type: boolean
+
+    AdminSubscriptionList:
+      type: object
+      required: [items, total, page, limit]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminSubscription"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    AdminPromocode:
+      type: object
+      required: [id, bonusAmount, maxUses, usesCount]
+      properties:
+        id:
+          type: string
+        bonusAmount:
+          type: integer
+        maxUses:
+          type: integer
+        usesCount:
+          type: integer
+
+    PromocodeInput:
+      type: object
+      required: [id, bonusAmount, maxUses]
+      properties:
+        id:
+          type: string
+        bonusAmount:
+          type: integer
+        maxUses:
+          type: integer
+
+    AuthConfig:
+      type: object
+      required: [botUsername]
+      properties:
+        botUsername:
+          type: string
+
+    TelegramAuthData:
+      type: object
+      required: [id, hash, auth_date]
+      properties:
+        id:
+          type: integer
+        hash:
+          type: string
+        auth_date:
+          type: integer
+        first_name:
+          type: string
+        last_name:
+          type: string
+        username:
+          type: string
+        photo_url:
+          type: string
+
+    AuthUser:
+      type: object
+      required: [id, firstName]
+      properties:
+        id:
+          type: integer
+        firstName:
+          type: string
+        username:
+          type: string
+        lastName:
+          type: string
+
+    ResellerProfile:
+      type: object
+      required: [balance, discount]
+      properties:
+        balance:
+          type: number
+          description: Reseller balance in rubles
+        discount:
+          type: number
+          description: Current wholesale discount percentage (0-40)
+
+    ResellerClient:
+      type: object
+      required: [id, vpnKey, expiresAt, tariffId]
+      properties:
+        id:
+          type: string
+        vpnKey:
+          type: string
+        expiresAt:
+          type: string
+        tariffId:
+          type: string
+
+    CreateResellerClientBody:
+      type: object
+      required: [tariffId]
+      properties:
+        tariffId:
+          type: string
+        label:
+          type: string
+          description: Optional label/name for the client
+
+    RenewSubscriptionBody:
+      type: object
+      required: [tariffId]
+      properties:
+        tariffId:
+          type: string
+
+    BalanceAdjust:
+      type: object
+      required: [delta]
+      properties:
+        delta:
+          type: integer
