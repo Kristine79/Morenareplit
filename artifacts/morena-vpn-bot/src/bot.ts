@@ -24,6 +24,9 @@ async function setupMenuCommands(): Promise<void> {
   }
 }
 
+const POLL_RETRY_DELAY_MS = 15_000; // wait 15 s then retry after a 409
+const POLL_MAX_RETRIES    = 10;
+
 async function main(): Promise<void> {
   console.log("🌙 Morena VPN Bot стартует...");
 
@@ -62,12 +65,28 @@ async function main(): Promise<void> {
     }
   } else {
     // Polling-режим: бот сам опрашивает Telegram
+    // Retry on 409 (another instance still holds the connection — Telegram releases it after ~30 s)
     console.log("🔄 Bot работает в режиме long polling.");
-    await bot.start({
-      onStart: (info) => {
-        console.log(`✅ Бот @${info.username} успешно запущен!`);
-      },
-    });
+    for (let attempt = 1; attempt <= POLL_MAX_RETRIES; attempt++) {
+      try {
+        await bot.start({
+          onStart: (info) => {
+            console.log(`✅ Бот @${info.username} успешно запущен! (попытка ${attempt})`);
+          },
+        });
+        break; // clean exit — stop retrying
+      } catch (err: any) {
+        const is409 = err?.error_code === 409 || String(err?.message ?? "").includes("409");
+        if (is409 && attempt < POLL_MAX_RETRIES) {
+          console.warn(`[bot] 409 конфликт — другой экземпляр ещё активен. Повтор через ${POLL_RETRY_DELAY_MS / 1000} с (попытка ${attempt}/${POLL_MAX_RETRIES})...`);
+          await new Promise((r) => setTimeout(r, POLL_RETRY_DELAY_MS));
+          // Re-create the bot connection before retrying
+          try { await bot.api.deleteWebhook({ drop_pending_updates: false }); } catch {}
+        } else {
+          throw err;
+        }
+      }
+    }
   }
 
   // CryptoBot webhook конфигурируется независимо от Telegram webhook/polling

@@ -38,3 +38,11 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[userenv]
+
+[userenv.production]
+PLATEGA_MERCHANT_ID = "3fe354fb-1d59-4231-9134-18d015ee0b56"
+PLATEGA_SECRET = "j1BLWNC7PGWzAYHBxt7uib42QBi1eEpWTTr0FxHjHdIpf7DtOgLxljqPk3Ye72Z8CjliAD31KkkFUJ1xZaGBnk2dRDVyvNytE5K0"
+BOT_TOKEN = "8977392578:AAEO3tOtgNkCG_SpFVH-s0wSL-m-b6V0kCE"
+ROYALTYKEY_API_KEY = "8eb442a3-7510-4f9b-8ff6-03ed3c2cf777"
