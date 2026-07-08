@@ -10,8 +10,10 @@ import axios, { AxiosError } from "axios";
 
 const BASE_URL = "https://app.platega.io";
 
-export const PLATEGA_MERCHANT_ID = process.env.PLATEGA_MERCHANT_ID;
-export const PLATEGA_SECRET = process.env.PLATEGA_SECRET;
+// Read lazily at call-time so the values are always current regardless of when
+// the module was first imported (important for tsx watch restarts and secret injection timing).
+function getMerchantId(): string { return process.env.PLATEGA_MERCHANT_ID ?? ""; }
+function getSecret(): string     { return process.env.PLATEGA_SECRET      ?? ""; }
 
 // Payment method IDs per Platega docs
 export const PLATEGA_METHOD = {
@@ -66,8 +68,8 @@ export interface PlategalCallbackPayload {
 
 function authHeaders() {
   return {
-    "X-MerchantId": PLATEGA_MERCHANT_ID ?? "",
-    "X-Secret": PLATEGA_SECRET ?? "",
+    "X-MerchantId": getMerchantId(),
+    "X-Secret":     getSecret(),
     "Content-Type": "application/json",
   };
 }
@@ -83,7 +85,7 @@ function logError(tag: string, err: unknown): void {
 export const platega = {
   /** Returns true if PLATEGA_MERCHANT_ID and PLATEGA_SECRET are both set */
   isConfigured(): boolean {
-    return Boolean(PLATEGA_MERCHANT_ID && PLATEGA_SECRET);
+    return Boolean(getMerchantId() && getSecret());
   },
 
   /**
@@ -238,7 +240,7 @@ export const platega = {
    * Verify an incoming callback came from Platega by checking the X-MerchantId and X-Secret headers.
    */
   verifyCallback(merchantId: string, secret: string): boolean {
-    if (!PLATEGA_MERCHANT_ID || !PLATEGA_SECRET) return false;
-    return merchantId === PLATEGA_MERCHANT_ID && secret === PLATEGA_SECRET;
+    if (!getMerchantId() || !getSecret()) return false;
+    return merchantId === getMerchantId() && secret === getSecret();
   },
 };
