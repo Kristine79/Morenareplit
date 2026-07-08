@@ -267,6 +267,7 @@ router.post("/platega/webhook", async (req: Request, res: Response) => {
 
         const sub = db.prepare("SELECT * FROM Subscription WHERE id = ?").get(subId) as {
           id: string;
+          telegramUserId: string;
           expiresAt: string;
           vpnKey: string;
         } | undefined;
@@ -274,6 +275,13 @@ router.post("/platega/webhook", async (req: Request, res: Response) => {
         if (!sub) {
           logger.error({ subId }, "[platega_webhook] Subscription not found for renewal");
           await sendTelegramMessage(telegramId, `❌ Подписка не найдена\\. Обратитесь в поддержку\\.`);
+          return;
+        }
+
+        // Ownership guard: ensure the payer owns the subscription being renewed
+        if (String(sub.telegramUserId) !== String(telegramId)) {
+          logger.error({ subId, subOwner: sub.telegramUserId, payer: telegramId }, "[platega_webhook] Renewal ownership mismatch — rejected");
+          await sendTelegramMessage(telegramId, `❌ Ошибка: эта подписка принадлежит другому пользователю\\.`);
           return;
         }
 

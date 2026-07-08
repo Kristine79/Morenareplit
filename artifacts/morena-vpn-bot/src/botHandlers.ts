@@ -842,18 +842,18 @@ export function setupBotHandlers(bot: Bot): void {
     processor: () => Promise<void>
   ): Promise<boolean> {
     try {
-      const wasUpdated = await prisma.$transaction(async (tx) => {
-        const payment = await tx.payment.findUnique({ where: { id: transactionId } });
-        if (!payment || payment.status === "paid") return false;
-        await tx.payment.update({ where: { id: transactionId }, data: { status: "paid" } });
-        return true;
+      // Single atomic UPDATE — only succeeds if still pending; prevents double-provisioning
+      // from concurrent poll + manual-check handlers both seeing the pending state.
+      const result = await prisma.payment.updateMany({
+        where: { id: transactionId, status: "pending" },
+        data:  { status: "paid" },
       });
-      if (wasUpdated) {
+      if (result.count > 0) {
         await processor();
-      } else {
-        console.log(`[markPlategalInvoicePaid] Транзакция ${transactionId} уже обработана`);
+        return true;
       }
-      return wasUpdated;
+      console.log(`[markPlategalInvoicePaid] Транзакция ${transactionId} уже обработана — skipping`);
+      return false;
     } catch (err) {
       console.error(`[markPlategalInvoicePaid] Ошибка для ${transactionId}:`, err);
       return false;
@@ -862,13 +862,11 @@ export function setupBotHandlers(bot: Bot): void {
 
   async function markPlategalInvoiceFailed(transactionId: string): Promise<boolean> {
     try {
-      const wasUpdated = await prisma.$transaction(async (tx) => {
-        const payment = await tx.payment.findUnique({ where: { id: transactionId } });
-        if (!payment || payment.status !== "pending") return false;
-        await tx.payment.update({ where: { id: transactionId }, data: { status: "failed" } });
-        return true;
+      const result = await prisma.payment.updateMany({
+        where: { id: transactionId, status: "pending" },
+        data:  { status: "failed" },
       });
-      return wasUpdated;
+      return result.count > 0;
     } catch (err) {
       console.error(`[markPlategalInvoiceFailed] Ошибка для ${transactionId}:`, err);
       return false;
@@ -955,10 +953,14 @@ export function setupBotHandlers(bot: Bot): void {
       if (payment.telegramUserId !== userId) { await ctx.reply("❌ Этот счёт не принадлежит вам."); return; }
       if (payment.status === "paid") { await ctx.reply("✅ Платёж уже обработан."); return; }
 
+      // Derive bonusUsed from stored payment amount vs tariff price (avoids storing extra field)
+      const tariffForBonus = TARIFFS.find((t) => t.id === tariffId);
+      const bonusUsed = tariffForBonus ? Math.max(0, tariffForBonus.priceRub - payment.amount) : 0;
+
       const result = await platega.checkStatus(transactionId);
       if (result.status === "CONFIRMED") {
         await markPlategalInvoicePaid(transactionId, async () => {
-          await grantVpnAccess(ctx, userId, tariffId, 0, payment.amount);
+          await grantVpnAccess(ctx, userId, tariffId, bonusUsed, payment.amount);
         });
       } else if (result.status === "CANCELED" || result.status === "CHARGEBACKED") {
         await markPlategalInvoiceFailed(transactionId);
@@ -1620,10 +1622,13 @@ export function setupBotHandlers(bot: Bot): void {
       if (payment.telegramUserId !== userId) { await ctx.reply("❌ Этот счёт не принадлежит вам."); return; }
       if (payment.status === "paid") { await ctx.reply("✅ Платёж уже обработан."); return; }
 
+      const tariffForBonus = TARIFFS.find((t) => t.id === tariffId);
+      const bonusUsed = tariffForBonus ? Math.max(0, tariffForBonus.priceRub - payment.amount) : 0;
+
       const result = await platega.checkStatus(transactionId);
       if (result.status === "CONFIRMED") {
         await markPlategalInvoicePaid(transactionId, async () => {
-          await processRenewal(ctx, userId, subId, tariffId, 0);
+          await processRenewal(ctx, userId, subId, tariffId, bonusUsed);
         });
       } else if (result.status === "CANCELED" || result.status === "CHARGEBACKED") {
         await markPlategalInvoiceFailed(transactionId);
@@ -1698,6 +1703,11 @@ export function setupBotHandlers(bot: Bot): void {
       // Получаем текущую подписку для получения vpnUserId (uuid)
       const sub = await prisma.subscription.findUnique({ where: { id: subId } });
       if (!sub) throw new Error("Subscription not found");
+
+      // Ownership guard — prevent renewal from being applied to another user's subscription
+      if (sub.telegramUserId !== userId) {
+        throw new Error(`Renewal ownership mismatch: sub ${subId} belongs to ${sub.telegramUserId}, payer is ${userId}`);
+      }
 
       const tariff = TARIFFS.find((t) => t.id === tariffId);
       if (!tariff) throw new Error("Tariff not found");
