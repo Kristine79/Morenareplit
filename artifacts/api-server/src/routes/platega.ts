@@ -127,6 +127,11 @@ const TARIFF_MAP: Record<string, { apiTariff: string; apiDays: number; durationD
 // Headers contain X-MerchantId and X-Secret for verification.
 // ────────────────────────────────────────────────────────────────────────────
 
+// Platega may send a GET ping to verify the callback URL is reachable before saving it
+router.get("/platega/webhook", (_req: Request, res: Response) => {
+  res.status(200).send("OK");
+});
+
 router.post("/platega/webhook", async (req: Request, res: Response) => {
   // 1. Verify the request is genuinely from Platega
   const incomingMerchantId = req.headers["x-merchantid"] as string ?? "";
