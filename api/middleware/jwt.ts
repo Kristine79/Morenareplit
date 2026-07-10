@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response } from "express";
 
 export interface JwtUserPayload {
   userId: number;
@@ -23,7 +23,7 @@ function getSecret(): string {
   return secret;
 }
 
-export function jwtMiddleware(req: Request, _res: Response, next: NextFunction): void {
+export function jwtMiddleware(req: Request, _res: Response, next: (err?: unknown) => void): void {
   const token = req.cookies?.[COOKIE_NAME] as string | undefined;
   if (!token) {
     next();
@@ -38,7 +38,7 @@ export function jwtMiddleware(req: Request, _res: Response, next: NextFunction):
   next();
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export function requireAuth(req: Request, res: Response, next: (err?: unknown) => void): void {
   if (!req.user) {
     res.status(401).json({ error: "Требуется авторизация" });
     return;
