@@ -11,11 +11,12 @@
     "declaration": false,
     "skipLibCheck": true
   },
-  "include": [
+"include": [
+    "*.d.ts",
     "index.ts",
     "app.ts",
     "lib/**/*.ts",
     "middleware/**/*.ts",
     "routes/**/*.ts"
-  ]
+]
 }
