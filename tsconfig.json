@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
-  "files": [],
+  "files": ["api/types.d.ts"],
   "references": [
     {
       "path": "./lib/db"
