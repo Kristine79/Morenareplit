@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm prisma generate && pnpm --filter @workspace/admin-panel run build",
+  "buildCommand": "PRISMA_CLIENT_DIR=$(ls -d node_modules/.pnpm/@prisma+client@*/node_modules/@prisma/client | head -1) && ln -sf ../../.prisma \"$PRISMA_CLIENT_DIR/.prisma\" && pnpm prisma generate && pnpm --filter @workspace/admin-panel run build",
   "outputDirectory": "artifacts/admin-panel/dist/public",
   "functions": {
     "api/index.ts": {
