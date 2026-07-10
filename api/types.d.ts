@@ -1,3 +1,11 @@
+export {};
+
+declare module "express" {
+  interface Request {
+    user?: { userId: number; firstName: string; username?: string };
+  }
+}
+
 declare module "@prisma/client" {
   class PrismaClient {
     constructor(options?: { log?: ("query" | "info" | "warn" | "error")[] });
@@ -48,10 +56,4 @@ declare module "@prisma/client" {
     $transaction<P extends Promise<any>[]>(args: [...P]): Promise<any>;
   }
   export { PrismaClient };
-}
-
-declare namespace Express {
-  interface Request {
-    user?: { userId: number; firstName: string; username?: string };
-  }
 }
