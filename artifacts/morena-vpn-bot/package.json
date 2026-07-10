@@ -19,6 +19,9 @@
     "@prisma/client": "^6.9.0",
     "node-cron": "^3.0.3"
   },
+  "prisma": {
+    "schema": "../../prisma/schema.prisma"
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "@types/qrcode": "^1.5.5",

@@ -1,0 +1,21 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "types": ["node"],
+    "lib": ["es2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "skipLibCheck": true
+  },
+  "include": [
+    "index.ts",
+    "app.ts",
+    "lib/**/*.ts",
+    "middleware/**/*.ts",
+    "routes/**/*.ts"
+  ]
+}

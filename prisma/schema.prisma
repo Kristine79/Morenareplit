@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           BigInt  @id
+  username     String?
+  balance      Int     @default(0)
+  referredById BigInt?
+  hasUsedTrial   Boolean  @default(false)
+  lastActivityAt DateTime?
+  createdAt    DateTime @default(now())
+
+  subscriptions  Subscription[]
+  payments       Payment[]
+  usedPromocodes UsedPromocode[]
+
+  @@map("User")
+}
+
+model Subscription {
+  id             String   @id
+  telegramUserId BigInt
+  vpnKey         String
+  tariffId       String
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [telegramUserId], references: [id])
+
+  @@map("Subscription")
+}
+
+model Promocode {
+  id          String @id
+  bonusAmount Int
+  maxUses     Int
+  usesCount   Int    @default(0)
+
+  usedBy UsedPromocode[]
+
+  @@map("Promocode")
+}
+
+model UsedPromocode {
+  id          Int    @id @default(autoincrement())
+  userId      BigInt
+  promocodeId String
+
+  user      User      @relation(fields: [userId], references: [id])
+  promocode Promocode @relation(fields: [promocodeId], references: [id])
+
+  @@unique([userId, promocodeId])
+  @@map("UsedPromocode")
+}
+
+model Payment {
+  id             String @id
+  telegramUserId BigInt
+  tariffId       String
+  amount         Int
+  status         String
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [telegramUserId], references: [id])
+
+  @@map("Payment")
+}

@@ -1,0 +1,50 @@
+{
+  "buildCommand": "pnpm prisma generate && pnpm --filter @workspace/admin-panel run build",
+  "outputDirectory": "artifacts/admin-panel/dist/public",
+  "functions": {
+    "api/index.ts": {
+      "memory": 512,
+      "maxDuration": 30
+    },
+    "api/webhook/bot.ts": {
+      "memory": 256,
+      "maxDuration": 30
+    },
+    "api/webhook/crypto-bot.ts": {
+      "memory": 256,
+      "maxDuration": 30
+    },
+    "api/cron/expiry.ts": {
+      "memory": 256,
+      "maxDuration": 120
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/expiry",
+      "schedule": "0 9 * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/admin(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/auth(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/platega(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/healthz",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
