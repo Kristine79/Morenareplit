@@ -1,4 +1,5 @@
 {
+  "framework": null,
   "buildCommand": "pnpm prisma generate && pnpm --filter @workspace/admin-panel run build",
   "outputDirectory": "artifacts/admin-panel/dist/public",
   "functions": {
