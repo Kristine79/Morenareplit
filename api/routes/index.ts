@@ -1,21 +1,24 @@
 import { Router, type Request, type Response } from "express";
-import healthRouter from "./health.js";
-import authRouter from "./auth.js";
-import adminRouter from "./admin.js";
-import resellerRouter from "./reseller.js";
-import plategalRouter from "./platega.js";
+import { healthRouter } from "./health.js";
+import { authRouter } from "./auth.js";
+import { adminRouter } from "./admin.js";
+import { resellerRouter } from "./reseller.js";
+import { plategalRouter } from "./platega.js";
+import { webhookRouter } from "./webhooks.js";
+import { cronRouter } from "./cron.js";
 
-const router = Router();
+export const mainRouter = Router();
 
-router.use(healthRouter);
-router.use(authRouter);
-router.use(plategalRouter);
+mainRouter.use(healthRouter);
+mainRouter.use(authRouter);
+mainRouter.use(plategalRouter);
 
-router.use(adminRouter);
-router.use(resellerRouter);
+mainRouter.use(adminRouter);
+mainRouter.use(resellerRouter);
 
-router.use((_req: Request, res: Response) => {
+mainRouter.use(webhookRouter);
+mainRouter.use(cronRouter);
+
+mainRouter.use((_req: Request, res: Response) => {
   res.status(404).json({ error: "Not found" });
 });
-
-export default router;

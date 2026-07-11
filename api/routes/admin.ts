@@ -18,11 +18,11 @@ import {
 import { prisma } from "../../lib/prisma.js";
 import { logger } from "../lib/logger.js";
 
-const router = Router();
+export const adminRouter = Router();
 
-router.use("/admin", requireAuth);
+adminRouter.use("/admin", requireAuth);
 
-router.get("/admin/stats", async (_req: Request, res: Response): Promise<void> => {
+adminRouter.get("/admin/stats", async (_req: Request, res: Response): Promise<void> => {
   try {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -83,7 +83,7 @@ router.get("/admin/stats", async (_req: Request, res: Response): Promise<void> =
   }
 });
 
-router.get("/admin/users", async (req: Request, res: Response): Promise<void> => {
+adminRouter.get("/admin/users", async (req: Request, res: Response): Promise<void> => {
   const parsed = ListAdminUsersQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -136,7 +136,7 @@ router.get("/admin/users", async (req: Request, res: Response): Promise<void> =>
   }
 });
 
-router.get("/admin/payments", async (req: Request, res: Response): Promise<void> => {
+adminRouter.get("/admin/payments", async (req: Request, res: Response): Promise<void> => {
   const parsed = ListAdminPaymentsQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -179,7 +179,7 @@ router.get("/admin/payments", async (req: Request, res: Response): Promise<void>
   }
 });
 
-router.get("/admin/subscriptions", async (req: Request, res: Response): Promise<void> => {
+adminRouter.get("/admin/subscriptions", async (req: Request, res: Response): Promise<void> => {
   const parsed = ListAdminSubscriptionsQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -229,7 +229,7 @@ router.get("/admin/subscriptions", async (req: Request, res: Response): Promise<
   }
 });
 
-router.get("/admin/promocodes", async (_req: Request, res: Response): Promise<void> => {
+adminRouter.get("/admin/promocodes", async (_req: Request, res: Response): Promise<void> => {
   try {
     const promos = await prisma.promocode.findMany({
       orderBy: { id: "desc" },
@@ -241,7 +241,7 @@ router.get("/admin/promocodes", async (_req: Request, res: Response): Promise<vo
   }
 });
 
-router.post("/admin/promocodes", async (req: Request, res: Response): Promise<void> => {
+adminRouter.post("/admin/promocodes", async (req: Request, res: Response): Promise<void> => {
   const parsed = CreateAdminPromocodeBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -273,7 +273,7 @@ router.post("/admin/promocodes", async (req: Request, res: Response): Promise<vo
   }
 });
 
-router.patch("/admin/users/:userId/balance", async (req: Request, res: Response): Promise<void> => {
+adminRouter.patch("/admin/users/:userId/balance", async (req: Request, res: Response): Promise<void> => {
   const rawId = req.params.userId as string;
   const userId = BigInt(rawId);
 
@@ -332,4 +332,4 @@ router.patch("/admin/users/:userId/balance", async (req: Request, res: Response)
   }
 });
 
-export default router;
+

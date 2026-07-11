@@ -29,6 +29,9 @@ export interface AdminStats {
   paidPayments: number;
   revenueToday: number;
   newUsersToday: number;
+  activeToday: number;
+  activeWeek: number;
+  activeMonth: number;
   recentPayments: AdminPayment[];
 }
 
@@ -41,6 +44,8 @@ export interface AdminUser {
   /** @nullable */
   referredById?: string | null;
   subscriptionCount: number;
+  /** @nullable */
+  lastActivityAt?: string | null;
 }
 
 export interface AdminUserList {

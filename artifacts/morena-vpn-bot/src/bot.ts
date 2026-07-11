@@ -17,7 +17,7 @@ async function setupMenuCommands(): Promise<void> {
 
   try {
     await bot.api.setMyCommands(commands);
-    await bot.api.setChatMenuButton({ type: "commands" });
+    await bot.api.setChatMenuButton({ type: "commands" } as any);
     console.log("✅ Команды меню зарегистрированы");
   } catch (err) {
     console.error("[bot] Ошибка регистрации команд:", err);

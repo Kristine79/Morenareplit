@@ -2163,7 +2163,7 @@ export function setupBotHandlers(bot: Bot): void {
         {
           parse_mode: "MarkdownV2",
           disable_web_page_preview: true,
-        }
+        } as any
       );
     } catch (err) {
       console.error("[docs] Ошибка:", err);

@@ -5,7 +5,7 @@ import { prisma } from "../../lib/prisma.js";
 import { requireAuth } from "../middleware/jwt.js";
 import { logger } from "../lib/logger.js";
 
-const router = Router();
+export const plategalRouter = Router();
 
 const PLATEGA_MERCHANT_ID = process.env.PLATEGA_MERCHANT_ID;
 const PLATEGA_SECRET      = process.env.PLATEGA_SECRET;
@@ -86,11 +86,11 @@ const TARIFF_MAP: Record<string, { apiTariff: string; apiDays: number; durationD
   obhod_365days:   { apiTariff: "lte",     apiDays: 365, durationDays: 365 },
 };
 
-router.get("/platega/webhook", (_req: Request, res: Response) => {
+plategalRouter.get("/platega/webhook", (_req: Request, res: Response) => {
   res.status(200).send("OK");
 });
 
-router.post("/platega/webhook", async (req: Request, res: Response) => {
+plategalRouter.post("/platega/webhook", async (req: Request, res: Response) => {
   const incomingMerchantId = req.headers["x-merchantid"] as string ?? "";
   const incomingSecret     = req.headers["x-secret"]     as string ?? "";
 
@@ -314,7 +314,7 @@ router.post("/platega/webhook", async (req: Request, res: Response) => {
   });
 });
 
-router.get("/admin/platega/balance", requireAuth, async (_req: Request, res: Response) => {
+plategalRouter.get("/admin/platega/balance", requireAuth, async (_req: Request, res: Response) => {
   if (!PLATEGA_MERCHANT_ID || !PLATEGA_SECRET) {
     res.status(503).json({ error: "Platega not configured" });
     return;
@@ -332,7 +332,7 @@ router.get("/admin/platega/balance", requireAuth, async (_req: Request, res: Res
   }
 });
 
-router.post("/admin/platega/transactions", requireAuth, async (req: Request, res: Response) => {
+plategalRouter.post("/admin/platega/transactions", requireAuth, async (req: Request, res: Response) => {
   if (!PLATEGA_MERCHANT_ID || !PLATEGA_SECRET) {
     res.status(503).json({ error: "Platega not configured" });
     return;
@@ -365,7 +365,7 @@ router.post("/admin/platega/transactions", requireAuth, async (req: Request, res
   }
 });
 
-router.get("/admin/platega/conversions", requireAuth, async (_req: Request, res: Response) => {
+plategalRouter.get("/admin/platega/conversions", requireAuth, async (_req: Request, res: Response) => {
   if (!PLATEGA_MERCHANT_ID || !PLATEGA_SECRET) {
     res.status(503).json({ error: "Platega not configured" });
     return;
@@ -382,4 +382,4 @@ router.get("/admin/platega/conversions", requireAuth, async (_req: Request, res:
   }
 });
 
-export default router;
+

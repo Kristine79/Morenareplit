@@ -1,10 +1,10 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { Update } from "@grammyjs/types";
+import type { Request, Response } from "express";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export async function handler(req: Request, res: Response) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;

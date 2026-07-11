@@ -13,9 +13,9 @@ import {
 import { prisma } from "../../lib/prisma.js";
 import { logger } from "../lib/logger.js";
 
-const router = Router();
+export const resellerRouter = Router();
 
-router.use("/admin", requireAuth);
+resellerRouter.use("/admin", requireAuth);
 
 const ROYALTYKEY_BASE = "https://royaltykey.com/api/v1";
 
@@ -28,7 +28,7 @@ function getApiHeaders() {
   };
 }
 
-router.get("/admin/reseller/profile", async (req: Request, res: Response): Promise<void> => {
+resellerRouter.get("/admin/reseller/profile", async (req: Request, res: Response): Promise<void> => {
   try {
     const apiKey = process.env.ROYALTYKEY_API_KEY;
     if (!apiKey) throw new Error("ROYALTYKEY_API_KEY не задан");
@@ -44,7 +44,7 @@ router.get("/admin/reseller/profile", async (req: Request, res: Response): Promi
   }
 });
 
-router.post("/admin/reseller/clients", async (req: Request, res: Response): Promise<void> => {
+resellerRouter.post("/admin/reseller/clients", async (req: Request, res: Response): Promise<void> => {
   const parsed = CreateResellerClientBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -71,7 +71,7 @@ router.post("/admin/reseller/clients", async (req: Request, res: Response): Prom
   }
 });
 
-router.post("/admin/subscriptions/:id/renew", async (req: Request, res: Response): Promise<void> => {
+resellerRouter.post("/admin/subscriptions/:id/renew", async (req: Request, res: Response): Promise<void> => {
   const subId = req.params.id as string;
   const parsed = RenewSubscriptionBody.safeParse(req.body);
   if (!parsed.success) {
@@ -111,7 +111,7 @@ router.post("/admin/subscriptions/:id/renew", async (req: Request, res: Response
   }
 });
 
-router.delete("/admin/subscriptions/:id", async (req: Request, res: Response): Promise<void> => {
+resellerRouter.delete("/admin/subscriptions/:id", async (req: Request, res: Response): Promise<void> => {
   const subId = req.params.id as string;
 
   try {
@@ -138,4 +138,4 @@ router.delete("/admin/subscriptions/:id", async (req: Request, res: Response): P
   }
 });
 
-export default router;
+

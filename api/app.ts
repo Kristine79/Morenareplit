@@ -2,7 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
-import router from "./routes/index.js";
+import { mainRouter } from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 import { rateLimiter } from "./middleware/rateLimit.js";
 import { jwtMiddleware } from "./middleware/jwt.js";
@@ -62,6 +62,6 @@ app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 
 app.use(jwtMiddleware);
 
-app.use("/api", router);
+app.use("/api", mainRouter);
 
-export default app;
+export { app };

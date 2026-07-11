@@ -1,6 +1,5 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import crypto from "node:crypto";
 import {
   GetAuthConfigResponse,
   GetAuthMeResponse,
@@ -9,14 +8,14 @@ import {
 import { authRateLimiter } from "../middleware/rateLimit.js";
 import { signToken, COOKIE_NAME } from "../middleware/jwt.js";
 
-const router = Router();
+export const authRouter = Router();
 
-router.get("/auth/config", (_req: Request, res: Response): void => {
+authRouter.get("/auth/config", (_req: Request, res: Response): void => {
   const botUsername = process.env.BOT_USERNAME ?? "morenavpn_bot";
   res.json(GetAuthConfigResponse.parse({ botUsername }));
 });
 
-router.post("/auth/login", authRateLimiter, (req: Request, res: Response): void => {
+authRouter.post("/auth/login", authRateLimiter, (req: Request, res: Response): void => {
   const { password } = req.body as { password?: string };
   if (!password) {
     res.status(400).json({ error: "Пароль не указан" });
@@ -47,7 +46,7 @@ router.post("/auth/login", authRateLimiter, (req: Request, res: Response): void 
   res.json({ id: 1, firstName: "Admin" });
 });
 
-router.get("/auth/me", (req: Request, res: Response): void => {
+authRouter.get("/auth/me", (req: Request, res: Response): void => {
   if (!req.user) {
     res.status(401).json({ error: "Не авторизован" });
     return;
@@ -60,9 +59,7 @@ router.get("/auth/me", (req: Request, res: Response): void => {
   }));
 });
 
-router.post("/auth/logout", (req: Request, res: Response): void => {
+authRouter.post("/auth/logout", (req: Request, res: Response): void => {
   res.clearCookie(COOKIE_NAME, { path: "/" });
   res.json(LogoutResponse.parse({ ok: true }));
 });
-
-export default router;
