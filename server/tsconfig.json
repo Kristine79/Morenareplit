@@ -13,6 +13,6 @@
     "strict": false
   },
   "include": [
-    "index.ts"
+    "**/*.ts"
   ]
 }
