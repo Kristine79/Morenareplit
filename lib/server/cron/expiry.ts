@@ -1,10 +1,6 @@
-import { Router } from "express";
-import type { Request, Response } from "express";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Bot, InlineKeyboard } from "grammy";
-import { prisma } from "../../lib/prisma.js";
-import { logger } from "../lib/logger.js";
-
-export const cronRouter = Router();
+import { prisma } from "../../prisma.js";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
@@ -31,7 +27,7 @@ function formatDate(date: Date): string {
   });
 }
 
-cronRouter.post("/cron/expiry", async (_req: Request, res: Response) => {
+export async function handler(_req: VercelRequest, res: VercelResponse) {
   if (!BOT_TOKEN) {
     res.status(503).json({ error: "Bot not configured" });
     return;
@@ -85,4 +81,4 @@ cronRouter.post("/cron/expiry", async (_req: Request, res: Response) => {
   }
 
   res.status(200).json({ ok: true, results });
-});
+}

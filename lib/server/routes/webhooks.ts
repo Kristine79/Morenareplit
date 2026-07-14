@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import type { Update } from "@grammyjs/types";
-import { prisma } from "../../lib/prisma.js";
+import { prisma } from "../../prisma.js";
 import { logger } from "../lib/logger.js";
 
 export const webhookRouter = Router();

@@ -15,7 +15,7 @@ import {
   AdjustUserBalanceResponse,
   AdjustUserBalanceBody,
 } from "@workspace/api-zod";
-import { prisma } from "../../lib/prisma.js";
+import { prisma } from "../../prisma.js";
 import { logger } from "../lib/logger.js";
 
 export const adminRouter = Router();

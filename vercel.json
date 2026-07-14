@@ -5,7 +5,7 @@
   "functions": {
     "api/index.ts": {
       "maxDuration": 60,
-      "includeFiles": "server/**"
+      "includeFiles": "lib/server/**"
     }
   },
   "crons": [
