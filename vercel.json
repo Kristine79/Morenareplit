@@ -4,8 +4,7 @@
   "outputDirectory": "public",
   "functions": {
     "api/index.ts": {
-      "maxDuration": 60,
-      "includeFiles": "lib/server/**"
+      "maxDuration": 60
     }
   },
   "crons": [

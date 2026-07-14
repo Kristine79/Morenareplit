@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import type { Update } from "@grammyjs/types";
-import { prisma } from "../../prisma.js";
+import { prisma } from "../../../lib/prisma.js";
 import { logger } from "../lib/logger.js";
 
 export const webhookRouter = Router();
@@ -22,7 +22,7 @@ webhookRouter.post("/webhook/bot", async (req: Request, res: Response) => {
   }
 
   try {
-    const { bot } = await import("../../artifacts/morena-vpn-bot/src/botInstance.js");
+    const { bot } = await import("../../../artifacts/morena-vpn-bot/src/botInstance.js");
     const update: Update = req.body as Update;
 
     if (!update || !update.update_id) {

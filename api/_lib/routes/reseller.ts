@@ -10,7 +10,7 @@ import {
   RenewSubscriptionResponse,
   DeleteSubscriptionResponse,
 } from "@workspace/api-zod";
-import { prisma } from "../../prisma.js";
+import { prisma } from "../../../lib/prisma.js";
 import { logger } from "../lib/logger.js";
 
 export const resellerRouter = Router();

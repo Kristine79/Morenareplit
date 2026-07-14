@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { Bot, InlineKeyboard } from "grammy";
-import { prisma } from "../../prisma.js";
+import { prisma } from "../../../lib/prisma.js";
 import { logger } from "../lib/logger.js";
 
 export const cronRouter = Router();

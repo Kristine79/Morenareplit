@@ -1,7 +1,7 @@
 import { Router } from "express";
 import axios from "axios";
 import type { Request, Response } from "express";
-import { prisma } from "../../prisma.js";
+import { prisma } from "../../../lib/prisma.js";
 import { requireAuth } from "../middleware/jwt.js";
 import { logger } from "../lib/logger.js";
 

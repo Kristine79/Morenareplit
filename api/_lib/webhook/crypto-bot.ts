@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { prisma } from "../../prisma.js";
+import { prisma } from "../../../lib/prisma.js";
 
 interface CryptoBotWebhookPayload {
   update_id: number;

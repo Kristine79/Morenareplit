@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Bot, InlineKeyboard } from "grammy";
-import { prisma } from "../../prisma.js";
+import { prisma } from "../../../lib/prisma.js";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
