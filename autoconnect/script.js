@@ -36,10 +36,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         autoLink.addEventListener('click', (e) => {
             e.preventDefault();
+            navigator.clipboard.writeText(decodedKey).catch(() => {});
             window.location.href = hiddifyDeepLink;
             setTimeout(() => {
-                window.location.href = decodedKey;
-            }, 800);
+                const dlUrl = DOWNLOADS[currentTab][currentOS];
+                window.location.href = dlUrl;
+            }, 1500);
         });
 
         copyBtn.addEventListener('click', () => {
