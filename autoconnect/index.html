@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MORENA VPN - Установка</title>
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Inter Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-black font-sans text-slate-200 relative overflow-x-hidden flex flex-col items-center">
+  
+  <!-- Cyberpunk Background Elements -->
+  <div class="absolute inset-0 pointer-events-none z-0">
+    <!-- Dark radial center -->
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(15,20,35,0.3)_0%,rgba(0,0,0,1)_100%)]"></div>
+
+    <!-- Glowing Floor Reflections -->
+    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-48 bg-[radial-gradient(ellipse_at_top,rgba(0,240,255,0.15),transparent_70%)] blur-2xl"></div>
+    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-32 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_70%)] blur-xl"></div>
+
+    <!-- Tech Speed Lines -->
+    <div class="absolute top-[15%] left-0 w-1/3 h-[1px] bg-gradient-to-r from-cyan-400 to-transparent opacity-30 shadow-[0_0_10px_#00f0ff]"></div>
+    <div class="absolute top-[25%] right-0 w-1/2 h-[2px] bg-gradient-to-l from-purple-500 to-transparent opacity-30 shadow-[0_0_15px_#a855f7]"></div>
+    <div class="absolute top-[60%] right-0 w-1/4 h-[1px] bg-gradient-to-l from-cyan-400 to-transparent opacity-40 shadow-[0_0_8px_#00f0ff]"></div>
+    <div class="absolute bottom-[25%] left-[-5%] w-[40%] h-[1px] bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-40 shadow-[0_0_12px_#a855f7]"></div>
+  </div>
+
+  <!-- Main Content Wrapper -->
+  <div class="relative z-10 w-full max-w-6xl mx-auto flex flex-col items-center py-12 px-6 lg:py-20">
+
+    <!-- Header Section -->
+    <div class="text-center mb-16 w-full flex flex-col items-center">
+      <h1 class="text-5xl md:text-7xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 drop-shadow-[0_0_15px_rgba(0,240,255,0.3)] mb-4">
+        MORENA VPN
+      </h1>
+
+      <!-- Tech Subtitle -->
+      <div class="flex items-center justify-center gap-3 w-full max-w-md mt-2">
+        <div class="flex items-center flex-1">
+          <div class="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f0ff]"></div>
+          <div class="h-[1px] w-full bg-gradient-to-r from-cyan-400 to-transparent opacity-50"></div>
+        </div>
+        <span class="text-cyan-400 text-xs md:text-sm tracking-[0.3em] font-medium drop-shadow-[0_0_8px_rgba(0,240,255,0.6)] whitespace-nowrap">
+          YOUR PRIVACY &bull; OUR PRIORITY
+        </span>
+        <div class="flex items-center flex-1">
+          <div class="h-[1px] w-full bg-gradient-to-l from-purple-500 to-transparent opacity-50"></div>
+          <div class="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_#a855f7]"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="w-full grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-24 items-start">
+
+      <!-- Left Column: Cyber Shield Logo -->
+      <div class="flex justify-center items-center w-full relative mb-8 lg:mb-0">
+        <!-- Ambient shield glow -->
+        <div class="absolute inset-0 bg-gradient-to-tr from-cyan-500/10 to-purple-500/10 blur-[80px] rounded-full"></div>
+        
+        <svg viewBox="0 0 200 250" class="w-[240px] lg:w-[340px] h-auto drop-shadow-[0_0_25px_rgba(0,240,255,0.2)] relative z-10">
+          <defs>
+            <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00f0ff" />
+              <stop offset="50%" stop-color="#3b82f6" />
+              <stop offset="100%" stop-color="#a855f7" />
+            </linearGradient>
+            <linearGradient id="runeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00f0ff" />
+              <stop offset="100%" stop-color="#a855f7" />
+            </linearGradient>
+          </defs>
+
+          <!-- Main Outer Border -->
+          <path d="M100 15 L180 50 L180 130 C180 190 100 240 100 240 C100 240 20 190 20 130 L20 50 Z" 
+                fill="rgba(5,10,20,0.6)" stroke="url(#shieldGrad)" stroke-width="4" 
+                class="drop-shadow-[0_0_15px_rgba(0,240,255,0.6)]" />
+          
+          <!-- Inner Decorative Border -->
+          <path d="M100 30 L165 60 L165 125 C165 175 100 220 100 220 C100 220 35 175 35 125 L35 60 Z" 
+                fill="none" stroke="url(#shieldGrad)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.8" />
+          
+          <!-- Inner Solid Border -->
+          <path d="M100 40 L155 65 L155 120 C155 165 100 205 100 205 C100 205 45 165 45 120 L45 65 Z" 
+                fill="none" stroke="url(#shieldGrad)" stroke-width="1" opacity="0.4" />
+
+          <!-- Center Cyber Rune -->
+          <line x1="100" y1="55" x2="100" y2="190" stroke="url(#runeGrad)" stroke-width="5" stroke-linecap="round" class="drop-shadow-[0_0_15px_rgba(168,85,247,0.8)]" />
+          <path d="M100 75 L135 110 L100 145" fill="none" stroke="url(#runeGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" class="drop-shadow-[0_0_15px_rgba(168,85,247,0.8)]" />
+          <path d="M100 105 L65 140 L100 175" fill="none" stroke="url(#runeGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" class="drop-shadow-[0_0_15px_rgba(0,240,255,0.8)]" />
+
+          <!-- Tech Accents -->
+          <circle cx="100" cy="15" r="3" fill="#00f0ff" class="drop-shadow-[0_0_8px_#00f0ff]" />
+          <circle cx="180" cy="50" r="3" fill="#00f0ff" class="drop-shadow-[0_0_8px_#00f0ff]" />
+          <circle cx="20" cy="50" r="3" fill="#00f0ff" class="drop-shadow-[0_0_8px_#00f0ff]" />
+          <circle cx="100" cy="240" r="3" fill="#a855f7" class="drop-shadow-[0_0_8px_#a855f7]" />
+        </svg>
+      </div>
+
+      <!-- Right Column: Instructions UI -->
+      <div class="flex flex-col w-full max-w-xl mx-auto lg:mx-0">
+        
+        <!-- Tabs and OS Select Row -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 border-b border-white/10 pb-6 mb-10 w-full">
+          <!-- Tabs -->
+          <div class="flex gap-8">
+            <button id="tab-happ" class="text-lg font-bold tracking-widest uppercase transition-all duration-300 text-cyan-400 drop-shadow-[0_0_10px_#00f0ff] border-b-2 border-cyan-400 pb-2">
+              Happ
+            </button>
+            <button id="tab-incy" class="text-lg font-bold tracking-widest uppercase transition-all duration-300 text-slate-500 hover:text-slate-300 pb-2 border-b-2 border-transparent">
+              INCY
+            </button>
+          </div>
+
+          <!-- OS Selector -->
+          <div class="relative z-20 w-full sm:w-auto">
+            <button id="os-dropdown-btn" class="flex items-center justify-between gap-3 w-full sm:w-44 px-4 py-2.5 bg-black/50 border border-cyan-500/30 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(0,240,255,0.2)] rounded-lg text-sm transition-all duration-300 focus:outline-none">
+              <span class="flex items-center gap-2 text-cyan-50">
+                <span id="os-dropdown-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400 drop-shadow-[0_0_5px_#00f0ff]"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                </span>
+                <span id="os-dropdown-text">Windows</span>
+              </span>
+              <svg id="os-dropdown-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400 transition-transform duration-300"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            
+            <div id="os-dropdown-menu" class="hidden absolute top-full mt-2 right-0 w-full sm:w-44 bg-[#050505] backdrop-blur-xl border border-cyan-500/30 rounded-lg shadow-[0_0_30px_rgba(0,240,255,0.15)] overflow-hidden z-50">
+              <button class="os-option flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors duration-200 bg-cyan-500/20 text-cyan-400 border-l-2 border-cyan-400" data-os="Windows" data-icon="monitor">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                Windows
+              </button>
+              <button class="os-option flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors duration-200 text-slate-400 hover:bg-white/5 hover:text-white border-l-2 border-transparent" data-os="macOS" data-icon="monitor">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                macOS
+              </button>
+              <button class="os-option flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors duration-200 text-slate-400 hover:bg-white/5 hover:text-white border-l-2 border-transparent" data-os="Android" data-icon="smartphone">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                Android
+              </button>
+              <button class="os-option flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors duration-200 text-slate-400 hover:bg-white/5 hover:text-white border-l-2 border-transparent" data-os="iOS" data-icon="smartphone">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                iOS
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Instruction Steps -->
+        <div class="flex flex-col gap-12">
+          
+          <!-- Step 1 -->
+          <div class="flex items-start gap-6 group">
+            <div class="shrink-0 mt-1 relative">
+              <div class="absolute inset-0 bg-cyan-400 blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400 drop-shadow-[0_0_15px_#00f0ff] relative z-10"><path d="M12 13v8"/><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="m8 17 4 4 4-4"/></svg>
+            </div>
+            <div class="flex flex-col gap-2">
+              <h3 class="text-xl font-medium text-white tracking-wide">Установка приложения</h3>
+              <p class="text-slate-400 text-sm leading-relaxed max-w-md">
+                Выберите подходящую версию для вашего устройства, нажмите на кнопку ниже и установите приложение.
+              </p>
+              <a id="download-btn" href="#" target="_blank" class="flex items-center gap-2 w-max mt-3 px-5 py-2.5 bg-cyan-500/10 border border-cyan-500/50 text-cyan-400 font-bold tracking-wider text-sm rounded hover:bg-cyan-500/20 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:-translate-y-0.5 transition-all duration-300 uppercase no-underline">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                <span id="download-btn-text">Скачать Windows</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Step 2 — Default (no key) -->
+          <div id="step2-generic" class="flex items-start gap-6 group">
+            <div class="shrink-0 mt-1 relative">
+              <div class="absolute inset-0 bg-purple-500 blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400 drop-shadow-[0_0_15px_#a855f7] relative z-10"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            </div>
+            <div class="flex flex-col gap-2">
+              <h3 class="text-xl font-medium text-white tracking-wide">Добавление подписки</h3>
+              <p class="text-slate-400 text-sm leading-relaxed max-w-md">
+                Нажмите кнопку ниже — приложение откроется, и подписка добавится автоматически.
+              </p>
+              <button id="add-subscription-btn" class="flex items-center gap-2 w-max mt-3 px-5 py-2.5 bg-purple-500/10 border border-purple-500/50 text-purple-400 font-bold tracking-wider text-sm rounded hover:bg-purple-500/20 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:-translate-y-0.5 transition-all duration-300 uppercase">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                Добавить подписку
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 2 — Personalized (with key) -->
+          <div id="step2-personal" class="hidden flex items-start gap-6 group">
+            <div class="shrink-0 mt-1 relative">
+              <div class="absolute inset-0 bg-purple-500 blur-xl opacity-40 transition-opacity"></div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400 drop-shadow-[0_0_15px_#a855f7] relative z-10"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+            </div>
+            <div class="flex flex-col gap-2 w-full">
+              <h3 class="text-xl font-medium text-white tracking-wide">Добавление подписки</h3>
+              <p class="text-slate-400 text-sm leading-relaxed max-w-md">
+                Ваш ключ готов. Нажмите «Добавить подписку» — откроется Hiddify, и подписка добавится автоматически.
+              </p>
+
+              <!-- Key display block -->
+              <div class="w-full mt-3 p-3 bg-black/60 border border-purple-500/30 rounded-lg overflow-hidden">
+                <div class="flex items-center justify-between gap-2">
+                  <code id="subscription-key-display" class="text-purple-300 text-xs font-mono truncate select-all">...</code>
+                  <button id="copy-key-btn" class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/10 border border-purple-500/40 text-purple-400 text-xs font-bold rounded hover:bg-purple-500/20 transition-all duration-300 whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    Копировать
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap gap-3 mt-2">
+                <a id="auto-connect-link" href="#" target="_blank" class="flex items-center gap-2 px-5 py-2.5 bg-purple-500/10 border border-purple-500/50 text-purple-400 font-bold tracking-wider text-sm rounded hover:bg-purple-500/20 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:-translate-y-0.5 transition-all duration-300 uppercase no-underline">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                  Добавить подписку
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="flex items-start gap-6 group">
+            <div class="shrink-0 mt-1 relative">
+              <div class="absolute inset-0 bg-fuchsia-500 blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-fuchsia-400 drop-shadow-[0_0_15px_#e879f9] relative z-10"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+            </div>
+            <div class="flex flex-col gap-2">
+              <h3 class="text-xl font-medium text-white tracking-wide">Подключение и использование</h3>
+              <p class="text-slate-400 text-sm leading-relaxed max-w-md">
+                В главном разделе нажмите большую кнопку включения в центре для подключения к VPN. При необходимости выберите другой сервер.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

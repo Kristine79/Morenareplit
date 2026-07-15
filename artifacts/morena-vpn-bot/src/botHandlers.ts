@@ -22,6 +22,15 @@ import { platega, PLATEGA_METHOD } from "./platega.js";
 import { CLASSIC_TARIFFS, OBHOD_TARIFFS, TARIFFS, TRIAL_TARIFF_ID, TRIAL_DURATION_DAYS, TRIAL_API_TARIFF, TRIAL_API_DAYS, REFERRAL_BONUS, EXTRA_TRAFFIC_PACKAGES } from "./tariffs.js";
 import { escapeMarkdown, formatVpnKey, formatDate, subStatus } from "./helpers.js";
 
+const plategaCb = new Map<string, Record<string, string>>();
+let plategaCbId = 0;
+function plategaCbSet(data: Record<string, string>): string {
+  const key = String(++plategaCbId);
+  plategaCb.set(key, data);
+  setTimeout(() => plategaCb.delete(key), 3_600_000); // auto-clean after 1h
+  return key;
+}
+
 export function setupBotHandlers(bot: Bot): void {
   const POLL_INTERVAL_MS = 7000;
   const POLL_MAX_MS = 3600000;
@@ -441,9 +450,10 @@ export function setupBotHandlers(bot: Bot): void {
         },
       });
 
+      const cbKeyGift = plategaCbSet({ transactionId: invoice.transactionId, tariffId, recipient });
       const keyboard = new InlineKeyboard()
         .url("💳 Оплатить картой", invoice.url).row()
-        .text("✅ Я оплатил", `check_platega_gift:${invoice.transactionId}:${tariffId}:${recipient}`).row()
+        .text("✅ Я оплатил", `ckg:${cbKeyGift}`).row()
         .text("◀️ Назад", "gift");
 
       await ctx.reply(
@@ -497,9 +507,10 @@ export function setupBotHandlers(bot: Bot): void {
         },
       });
 
+      const cbKeyGiftSbp = plategaCbSet({ transactionId: invoice.transactionId, tariffId, recipient });
       const keyboard = new InlineKeyboard()
         .url("📲 Оплатить через СБП", invoice.url).row()
-        .text("✅ Я оплатил", `check_platega_gift:${invoice.transactionId}:${tariffId}:${recipient}`).row()
+        .text("✅ Я оплатил", `ckg:${cbKeyGiftSbp}`).row()
         .text("◀️ Назад", "gift");
 
       await ctx.reply(
@@ -748,9 +759,10 @@ export function setupBotHandlers(bot: Bot): void {
         ? `${tariff.priceRub} ₽ − ${discount} ₽ бонус = *${escapeMarkdown(final.toString())} ₽*`
         : `*${escapeMarkdown(final.toString())} ₽*`;
 
+      const cbKeyBuy = plategaCbSet({ transactionId: invoice.transactionId, tariffId });
       const keyboard = new InlineKeyboard()
         .url("💳 Оплатить картой", invoice.url).row()
-        .text("✅ Я оплатил", `check_platega_buy:${invoice.transactionId}:${tariffId}`).row()
+        .text("✅ Я оплатил", `ckb:${cbKeyBuy}`).row()
         .text("◀️ Назад", `buy_tariff:${tariffId}`);
 
       await ctx.reply(
@@ -816,9 +828,10 @@ export function setupBotHandlers(bot: Bot): void {
         ? `${tariff.priceRub} ₽ − ${discount} ₽ бонус = *${escapeMarkdown(final.toString())} ₽*`
         : `*${escapeMarkdown(final.toString())} ₽*`;
 
+      const cbKeyBuy = plategaCbSet({ transactionId: invoice.transactionId, tariffId });
       const keyboard = new InlineKeyboard()
         .url("📲 Оплатить через СБП", invoice.url).row()
-        .text("✅ Я оплатил", `check_platega_buy:${invoice.transactionId}:${tariffId}`).row()
+        .text("✅ Я оплатил", `ckb:${cbKeyBuy}`).row()
         .text("◀️ Назад", `buy_tariff:${tariffId}`);
 
       await ctx.reply(
@@ -941,17 +954,31 @@ export function setupBotHandlers(bot: Bot): void {
 
   // ─── Platega check callbacks ─────────────────────────────────────────────
 
-  bot.callbackQuery(/^check_platega_buy:([^:]+):(.+)$/, async (ctx) => {
-    await ctx.answerCallbackQuery("🔍 Проверяем платёж...");
-    const transactionId = ctx.match[1];
-    const tariffId      = ctx.match[2];
+  bot.callbackQuery(/^ckb:(.+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const cbData = plategaCb.get(ctx.match[1]);
+    if (!cbData) { await ctx.reply("⏳ Счёт устарел, попробуйте создать новый."); return; }
+    const transactionId = cbData.transactionId;
+    const tariffId      = cbData.tariffId;
     const userId        = BigInt(ctx.from.id);
 
     try {
       const payment = await prisma.payment.findUnique({ where: { id: transactionId } });
       if (!payment) { await ctx.reply("❌ Платёж не найден."); return; }
       if (payment.telegramUserId !== userId) { await ctx.reply("❌ Этот счёт не принадлежит вам."); return; }
-      if (payment.status === "paid") { await ctx.reply("✅ Платёж уже обработан."); return; }
+      if (payment.status === "paid") {
+        // Проверяем, создана ли подписка (если grantVpnAccess упал с ошибкой ранее)
+        const existingSub = await prisma.subscription.findFirst({ where: { telegramUserId: userId, tariffId } });
+        if (!existingSub) {
+          await ctx.reply("🔄 Платёж обработан, создаю ключ...");
+          const tariffForBonus = TARIFFS.find((t) => t.id === tariffId);
+          const bonusUsed = tariffForBonus ? Math.max(0, tariffForBonus.priceRub - payment.amount) : 0;
+          await grantVpnAccess(ctx, userId, tariffId, bonusUsed, payment.amount);
+          return;
+        }
+        await ctx.reply("✅ Платёж уже обработан.");
+        return;
+      }
 
       // Derive bonusUsed from stored payment amount vs tariff price (avoids storing extra field)
       const tariffForBonus = TARIFFS.find((t) => t.id === tariffId);
@@ -974,11 +1001,13 @@ export function setupBotHandlers(bot: Bot): void {
     }
   });
 
-  bot.callbackQuery(/^check_platega_gift:([^:]+):([^:]+):(.+)$/, async (ctx) => {
+  bot.callbackQuery(/^ckg:(.+)$/, async (ctx) => {
     await ctx.answerCallbackQuery("🔍 Проверяем платёж...");
-    const transactionId = ctx.match[1];
-    const tariffId      = ctx.match[2];
-    const recipient     = ctx.match[3];
+    const cbData = plategaCb.get(ctx.match[1]);
+    if (!cbData) { await ctx.reply("⏳ Счёт устарел, попробуйте создать новый."); return; }
+    const transactionId = cbData.transactionId;
+    const tariffId      = cbData.tariffId;
+    const recipient     = cbData.recipient;
     const userId        = BigInt(ctx.from.id);
 
     try {
@@ -1224,6 +1253,18 @@ export function setupBotHandlers(bot: Bot): void {
         await (target as { reply: Function }).reply(errMsg);
       } else {
         await bot.api.sendMessage(target as number, errMsg);
+      }
+
+      const errStr = String(err);
+      if (errStr.includes("402") || errStr.includes("Payment Required")) {
+        const adminId = process.env.ADMIN_TELEGRAM_ID;
+        if (adminId) {
+          await bot.api.sendMessage(
+            adminId,
+            `⚠️ *RoyaltyKey баланс закончился*\n\nПополните баланс, чтобы пользователи могли получать ключи VPN\\.\n\nОшибка: \`${escapeMarkdown(errStr)}\``,
+            { parse_mode: "MarkdownV2" }
+          ).catch((e) => console.error("[grantVpnAccess] Ошибка уведомления админа:", e));
+        }
       }
     }
   }
@@ -1523,9 +1564,10 @@ export function setupBotHandlers(bot: Bot): void {
         ? `${tariff.priceRub} ₽ − ${discount} ₽ бонус = *${escapeMarkdown(final.toString())} ₽*`
         : `*${escapeMarkdown(final.toString())} ₽*`;
 
+      const cbKeyRenew = plategaCbSet({ transactionId: invoice.transactionId, subId, tariffId });
       const keyboard = new InlineKeyboard()
         .url("💳 Оплатить картой", invoice.url).row()
-        .text("✅ Я оплатил", `check_platega_renew:${invoice.transactionId}:${subId}:${tariffId}`).row()
+        .text("✅ Я оплатил", `ckr:${cbKeyRenew}`).row()
         .text("◀️ Назад", `renew_pay:${subId}:${tariffId}`);
 
       await ctx.reply(
@@ -1591,9 +1633,10 @@ export function setupBotHandlers(bot: Bot): void {
         ? `${tariff.priceRub} ₽ − ${discount} ₽ бонус = *${escapeMarkdown(final.toString())} ₽*`
         : `*${escapeMarkdown(final.toString())} ₽*`;
 
+      const cbKeyRenew = plategaCbSet({ transactionId: invoice.transactionId, subId, tariffId });
       const keyboard = new InlineKeyboard()
         .url("📲 Оплатить через СБП", invoice.url).row()
-        .text("✅ Я оплатил", `check_platega_renew:${invoice.transactionId}:${subId}:${tariffId}`).row()
+        .text("✅ Я оплатил", `ckr:${cbKeyRenew}`).row()
         .text("◀️ Назад", `renew_pay:${subId}:${tariffId}`);
 
       await ctx.reply(
@@ -1609,18 +1652,32 @@ export function setupBotHandlers(bot: Bot): void {
     }
   });
 
-  bot.callbackQuery(/^check_platega_renew:([^:]+):([^:]+):(.+)$/, async (ctx) => {
+  bot.callbackQuery(/^ckr:(.+)$/, async (ctx) => {
     await ctx.answerCallbackQuery("🔍 Проверяем платёж...");
-    const transactionId = ctx.match[1];
-    const subId         = ctx.match[2];
-    const tariffId      = ctx.match[3];
+    const cbData = plategaCb.get(ctx.match[1]);
+    if (!cbData) { await ctx.reply("⏳ Счёт устарел, попробуйте создать новый."); return; }
+    const transactionId = cbData.transactionId;
+    const subId         = cbData.subId;
+    const tariffId      = cbData.tariffId;
     const userId        = BigInt(ctx.from.id);
 
     try {
       const payment = await prisma.payment.findUnique({ where: { id: transactionId } });
       if (!payment) { await ctx.reply("❌ Платёж не найден."); return; }
       if (payment.telegramUserId !== userId) { await ctx.reply("❌ Этот счёт не принадлежит вам."); return; }
-      if (payment.status === "paid") { await ctx.reply("✅ Платёж уже обработан."); return; }
+      if (payment.status === "paid") {
+        // Если processRenewal упал ранее (402), пробуем снова
+        const sub = await prisma.subscription.findUnique({ where: { id: subId } });
+        if (sub && new Date(sub.expiresAt) <= new Date(Date.now() - 60000)) {
+          const tariffForBonus = TARIFFS.find((t) => t.id === tariffId);
+          const bonusUsed = tariffForBonus ? Math.max(0, tariffForBonus.priceRub - payment.amount) : 0;
+          await ctx.reply("🔄 Платёж обработан, продлеваю...");
+          await processRenewal(ctx, userId, subId, tariffId, bonusUsed);
+          return;
+        }
+        await ctx.reply("✅ Платёж уже обработан.");
+        return;
+      }
 
       const tariffForBonus = TARIFFS.find((t) => t.id === tariffId);
       const bonusUsed = tariffForBonus ? Math.max(0, tariffForBonus.priceRub - payment.amount) : 0;

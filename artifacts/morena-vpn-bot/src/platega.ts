@@ -125,8 +125,17 @@ export const platega = {
       body.paymentMethod = method;
     }
 
-    const res = await axios.post<PlategalInvoice>(endpoint, body, { headers: authHeaders() });
-    return res.data;
+    const res = await axios.post<any>(endpoint, body, { headers: authHeaders() });
+    // v1 endpoint returns `redirect` instead of `url` and `expiresIn` may be null
+    const raw = res.data;
+    return {
+      transactionId: raw.transactionId,
+      status:        raw.status,
+      url:           raw.url ?? raw.redirect ?? "",
+      expiresIn:     raw.expiresIn ?? raw.paymentMethod ? "30:00" : "00:30:00",
+      rate:          raw.rate,
+      paymentMethod: raw.paymentMethod,
+    } satisfies PlategalInvoice;
   },
 
   /**
