@@ -1,21 +1,22 @@
 const DOWNLOADS = {
   happ: {
-    Windows: "https://github.com/hiddify/hiddify-app/releases/latest",
-    macOS: "https://github.com/hiddify/hiddify-app/releases/latest",
-    Android: "https://play.google.com/store/apps/details?id=app.hiddify.com",
-    iOS: "https://apps.apple.com/app/hiddify/id6596777532",
+    Windows: "https://github.com/Happ-proxy/happ-android/releases/latest/download/Happ.apk",
+    macOS: "https://github.com/Happ-proxy/happ-android/releases/latest/download/Happ.apk",
+    Android: "https://play.google.com/store/apps/details?id=com.happproxy",
+    iOS: "https://github.com/Happ-proxy/happ-android/releases/latest/download/Happ.apk",
   },
   incy: {
-    Windows: "https://github.com/hiddify/hiddify-app/releases/latest",
-    macOS: "https://github.com/hiddify/hiddify-app/releases/latest",
-    Android: "https://play.google.com/store/apps/details?id=app.hiddify.com",
-    iOS: "https://apps.apple.com/app/hiddify/id6596777532",
+    Windows: "https://github.com/INCY-DEV/incy-platforms/releases/latest/download/Incy.apk",
+    macOS: "https://github.com/INCY-DEV/incy-platforms/releases/latest/download/Incy.apk",
+    Android: "https://play.google.com/store/apps/details?id=llc.itdev.incy",
+    iOS: "https://github.com/INCY-DEV/incy-platforms/releases/latest/download/Incy.apk",
   },
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const subscriptionKey = params.get('key');
+    let decodedKey = '';
     let currentTab = 'happ';
     let currentOS = 'Windows';
 
@@ -26,18 +27,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const autoLink = document.getElementById('auto-connect-link');
 
     if (subscriptionKey) {
-        const decodedKey = decodeURIComponent(subscriptionKey);
+        decodedKey = decodeURIComponent(subscriptionKey);
         step2Generic.classList.add('hidden');
         step2Personal.classList.remove('hidden');
         keyDisplay.textContent = decodedKey;
 
-        const hiddifyDeepLink = `hiddify://import/sing-box?url=${encodeURIComponent(decodedKey)}`;
-        autoLink.href = hiddifyDeepLink;
+        const deepLink = currentTab === 'incy'
+            ? `incy://import/${decodedKey}`
+            : `happ://import?url=${encodeURIComponent(decodedKey)}`;
+        autoLink.href = deepLink;
 
         autoLink.addEventListener('click', (e) => {
             e.preventDefault();
             navigator.clipboard.writeText(decodedKey).catch(() => {});
-            window.location.href = hiddifyDeepLink;
+            window.location.href = deepLink;
             setTimeout(() => {
                 const dlUrl = DOWNLOADS[currentTab][currentOS];
                 window.location.href = dlUrl;
@@ -135,6 +138,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabHapp = document.getElementById('tab-happ');
     const tabIncy = document.getElementById('tab-incy');
 
+    function updateDeepLink() {
+        if (subscriptionKey) {
+            const dl = currentTab === 'incy'
+                ? `incy://import/${decodedKey}`
+                : `happ://import?url=${encodeURIComponent(decodedKey)}`;
+            autoLink.href = dl;
+        }
+    }
+
     function setActiveTab(tab) {
         currentTab = tab;
         if (tab === 'happ') {
@@ -145,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tabHapp.className = "text-lg font-bold tracking-widest uppercase transition-all duration-300 text-slate-500 hover:text-slate-300 pb-2 border-b-2 border-transparent";
         }
         updateDownloadLink();
+        updateDeepLink();
     }
 
     tabHapp.addEventListener('click', () => setActiveTab('happ'));
