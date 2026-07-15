@@ -32,10 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
         step2Personal.classList.remove('hidden');
         keyDisplay.textContent = decodedKey;
 
-        const encodedSubUrl = encodeURIComponent(decodedKey);
         const deepLink = currentTab === 'incy'
-            ? `incy://import?url=${encodedSubUrl}`
-            : `happ://import?url=${encodedSubUrl}`;
+            ? `incy://import/${decodedKey}`
+            : `happ://import?url=${decodedKey}`;
         autoLink.href = deepLink;
 
         autoLink.addEventListener('click', (e) => {
@@ -137,10 +136,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateDeepLink() {
         if (subscriptionKey) {
-            const encoded = encodeURIComponent(decodedKey);
             const dl = currentTab === 'incy'
-                ? `incy://import?url=${encoded}`
-                : `happ://import?url=${encoded}`;
+                ? `incy://import/${decodedKey}`
+                : `happ://import?url=${decodedKey}`;
             autoLink.href = dl;
         }
     }
