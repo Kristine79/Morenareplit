@@ -34,17 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const deepLink = currentTab === 'incy'
             ? `incy://import/${decodedKey}`
-            : `happ://import?url=${encodeURIComponent(decodedKey)}`;
+            : `happ://import?url=${decodedKey}`;
         autoLink.href = deepLink;
 
         autoLink.addEventListener('click', (e) => {
             e.preventDefault();
             navigator.clipboard.writeText(decodedKey).catch(() => {});
             window.location.href = deepLink;
-            setTimeout(() => {
-                const dlUrl = DOWNLOADS[currentTab][currentOS];
-                window.location.href = dlUrl;
-            }, 1500);
         });
 
         copyBtn.addEventListener('click', () => {
@@ -142,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (subscriptionKey) {
             const dl = currentTab === 'incy'
                 ? `incy://import/${decodedKey}`
-                : `happ://import?url=${encodeURIComponent(decodedKey)}`;
+                : `happ://import?url=${decodedKey}`;
             autoLink.href = dl;
         }
     }
